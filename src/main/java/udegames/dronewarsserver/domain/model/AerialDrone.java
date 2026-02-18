@@ -1,0 +1,10 @@
+package udegames.dronewarsserver.domain.model;
+
+import udegames.dronewarsserver.domain.enums.UnitType;
+
+public class AerialDrone extends Drone {
+
+    public AerialDrone(String carrierId, float maxFuel, int maxAmmo, String ownerId, int health, Position position) {
+        super(carrierId, maxFuel, maxAmmo, ownerId, health, position, UnitType.AERIAL_DRONE);
+    }
+}
