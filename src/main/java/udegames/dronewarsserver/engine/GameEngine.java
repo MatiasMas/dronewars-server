@@ -111,10 +111,15 @@ public class GameEngine {
         Player player1 = new Player("Player 1");
         Player player2 = new Player("Player 2");
 
+        player1.setId("player_1");
+        player2.setId("player_2");
+
         gameState.addPlayer(player1);
         gameState.addPlayer(player2);
 
         logger.debug("2 players created: {}", gameState.getPlayers());
+        logger.debug("Player 1: {}", player1.getId());
+        logger.debug("Player 2: {}", player2.getId());
     }
 
     private void createUnits() {

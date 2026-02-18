@@ -9,12 +9,16 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import udegames.dronewarsserver.domain.model.Unit;
+import udegames.dronewarsserver.dto.AvailablePlayerDTO;
+import udegames.dronewarsserver.dto.GameUnitsDTO;
+import udegames.dronewarsserver.dto.ServerResponseDTO;
 import udegames.dronewarsserver.dto.UnitSelectionDTO;
 import udegames.dronewarsserver.engine.GameState;
 import udegames.dronewarsserver.mapper.UnitMapper;
 import udegames.dronewarsserver.service.ISelectionService;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class GameWebSocketHandler extends TextWebSocketHandler {
     private static final Set<WebSocketSession> connectedSessions = ConcurrentHashMap.newKeySet();
     private static final Map<String, String> sessionToPlayerId = new ConcurrentHashMap<>();
+    private static final Set<String> registeredPlayers = ConcurrentHashMap.newKeySet();
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final GameState gameState;
     private final ISelectionService selectionService;
@@ -38,12 +43,21 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) {
         connectedSessions.add(session);
         logger.info("Client connected: {}", session.getId());
+
+        // Send a list of available players to the client - to remove with the lobby creation
+        sendAvailablePlayers(session);
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         connectedSessions.remove(session);
-        sessionToPlayerId.remove(session.getId());
+        String playerId = sessionToPlayerId.remove(session.getId());
+
+        if (playerId != null) {
+            registeredPlayers.remove(playerId);
+            logger.info("Player: {} unregistered from the game, available again", playerId);
+        }
+
         logger.info("Client disconnected: {}", session.getId());
     }
 
@@ -55,13 +69,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             logger.info("Message received, type: {}, session: {}", messageType, session.getId());
 
             switch (messageType) {
-                case "REGISTER_PLAYER":
+                case CommunicationEvents.ClientToServerEvents.REGISTER_PLAYER:
                     handleRegisterPlayer(session, root);
                     break;
-                case "SELECT_UNIT":
+                case CommunicationEvents.ClientToServerEvents.SELECT_UNIT:
                     handleSelectUnit(session, root);
                     break;
-                case "GET_PLAYER_UNITS":
+                case CommunicationEvents.ClientToServerEvents.GET_PLAYER_UNITS:
                     handleGetPlayerUnits(session, root);
                     break;
                 default:
@@ -73,17 +87,46 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    /*
+     * Send a list of available players to the client - to remove with the lobby creation
+     */
+    private void sendAvailablePlayers(WebSocketSession session) {
+        try {
+            List<AvailablePlayerDTO> availablePlayers = gameState.getPlayers().stream()
+                    .map(player -> new AvailablePlayerDTO(
+                            player.getId(),
+                            player.getName(),
+                            !registeredPlayers.contains(player.getId())
+                    ))
+                    .toList();
+
+            sendResponse(session, CommunicationEvents.ServerToClientEvents.AVAILABLE_PLAYERS, availablePlayers);
+
+            logger.info("Available players sent to the client: {}", availablePlayers.size());
+        } catch (IOException e) {
+            logger.error("Error sending available players to the client", e);
+        }
+    }
+
     private void handleRegisterPlayer(WebSocketSession session, JsonNode root) throws IOException {
         String playerId = root.get("playerId").asText();
-        sessionToPlayerId.put(session.getId(), playerId);
 
-        if(!gameState.doesPlayerExist(playerId)) {
+        if (!gameState.doesPlayerExist(playerId)) {
             logger.error("Player does not exist in the game: {}", playerId);
             sendErrorMessage(session, "Player does not exist in the game: " + playerId);
+            return;
         }
 
-        String response = "{\"type\": \"PLAYER_REGISTERED\", \"playerId\": \"" + playerId + "\"}";
-        session.sendMessage(new TextMessage(response));
+        if (registeredPlayers.contains(playerId)) {
+            logger.warn("Player already registered in the game: {}", playerId);
+            sendErrorMessage(session, "Player already registered in the game: " + playerId);
+            return;
+        }
+
+        sessionToPlayerId.put(session.getId(), playerId);
+        registeredPlayers.add(playerId);
+
+        sendResponse(session, CommunicationEvents.ServerToClientEvents.PLAYER_REGISTERED, playerId);
 
         logger.info("Player correctly registered in session: {}", playerId);
     }
@@ -114,9 +157,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         // Convert a unit to DTO, so it can be sent to the client
         UnitSelectionDTO unitSelectionDTO = UnitMapper.toSelectionDTO(unit);
 
-        // Send unit selection confirmation to a client
-        String response = objectMapper.writeValueAsString(unitSelectionDTO);
-        session.sendMessage(new TextMessage(response));
+        sendResponse(session, CommunicationEvents.ServerToClientEvents.UNIT_SELECTED, unitSelectionDTO);
 
         logger.info("Unit: {}, selected by player: {}", unitId, playerId);
     }
@@ -124,6 +165,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private void handleGetPlayerUnits(WebSocketSession session, JsonNode root) throws IOException {
         String playerId = sessionToPlayerId.get(session.getId());
         List<Unit> playerUnits;
+        List<Unit> enemyUnits;
 
         // Check if a player is registered on the session
         if (playerId == null) {
@@ -132,29 +174,37 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
-        // Get player units
+        // Get game units
         playerUnits = gameState.getPlayerUnits(playerId);
-        logger.debug("Player: {}, units retrieved: {}", playerId, playerUnits);
+        enemyUnits = gameState.getEnemyUnits(playerId);
+        logger.debug("Player: {}, units: {}, enemy units: {}", playerId, playerUnits.size(), enemyUnits.size());
 
         // Convert units to DTOs, so they can be sent to the client
-        List<UnitSelectionDTO> unitDTOs = playerUnits.stream().map(UnitMapper::toSelectionDTO).toList();
+        List<UnitSelectionDTO> playerUnitDTOs = playerUnits.stream().map(UnitMapper::toSelectionDTO).toList();
+        List<UnitSelectionDTO> enemyUnitDTOs = enemyUnits.stream().map(UnitMapper::toSelectionDTO).toList();
 
-        // Send units to a client
-        String response = objectMapper.writeValueAsString(unitDTOs);
-        session.sendMessage(new TextMessage(response));
+        GameUnitsDTO gameUnitsDTO = new GameUnitsDTO(playerUnitDTOs, enemyUnitDTOs);
+        sendResponse(session, CommunicationEvents.ServerToClientEvents.UNITS_RECEIVED, gameUnitsDTO);
 
-        logger.info("{} player units sent to client: {}", unitDTOs.size(), playerId);
-
-        for (UnitSelectionDTO dto : unitDTOs) {
-            logger.debug("   - {} [{}] in ({}, {}, {})",
-                    dto.getUnitId(), dto.getType(), dto.getX(), dto.getY(), dto.getZ());
-        }
+        logger.info("Units sent to {} client: player owns {}, enemy owns {}", playerId, playerUnitDTOs.size(), enemyUnitDTOs.size());
     }
 
-
     private void sendErrorMessage(WebSocketSession session, String errorMessage) throws IOException {
-        String response = "{\"error\": \"" + errorMessage + "\"}";
-        session.sendMessage(new TextMessage(response));
-        logger.debug("Error message sent to client: {}", errorMessage);
+        sendResponse(session, CommunicationEvents.ServerToClientEvents.SERVER_ERROR, errorMessage);
+        logger.debug("Error sent: {}", errorMessage);
+    }
+
+    /**
+     * Sends standard response to the client
+     * Format: { type: "...", payload: {...} }
+     *
+     * @param session   Websocket session
+     * @param eventType Event type (use CommunicationEvents)
+     * @param payload   Data to be sent
+     */
+    private void sendResponse(WebSocketSession session, String eventType, Object payload) throws IOException {
+        ServerResponseDTO response = new ServerResponseDTO(eventType, payload);
+        String jsonResponse = objectMapper.writeValueAsString(response);
+        session.sendMessage(new TextMessage(jsonResponse));
     }
 }

@@ -73,6 +73,10 @@ public class GameState {
         return player.getUnitIds().stream().map(units::get).toList();
     }
 
+    public List<Unit> getEnemyUnits(String playerId) {
+        return units.values().stream().filter(unit -> !unit.getOwnerId().equals(playerId)).toList();
+    }
+
     // ------------ Validations ------------
     public boolean doesUnitBelongsToPlayer(String unitId, String playerId) {
         Unit unit = getUnitById(unitId);
