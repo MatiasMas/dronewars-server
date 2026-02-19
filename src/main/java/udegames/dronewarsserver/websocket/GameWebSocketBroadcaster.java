@@ -26,10 +26,22 @@ public class GameWebSocketBroadcaster {
         connectedSessions.remove(session);
     }
 
-    public void send(WebSocketSession session, String eventType, Object payload) throws IOException {
+    public void send(WebSocketSession session, String eventType, Object payload) {
+        if (session == null || !session.isOpen()) {
+            return;
+        }
+
         ServerResponseDTO response = new ServerResponseDTO(eventType, payload);
-        String jsonResponse = objectMapper.writeValueAsString(response);
-        session.sendMessage(new TextMessage(jsonResponse));
+        String jsonResponse;
+
+        try {
+            jsonResponse = objectMapper.writeValueAsString(response);
+        } catch (Exception e) {
+            logger.error("Error al serializar el mensaje", e);
+            return;
+        }
+
+        sendTextSafely(session, jsonResponse);
     }
 
     public void broadcast(String eventType, Object payload) {
@@ -43,18 +55,26 @@ public class GameWebSocketBroadcaster {
             return;
         }
 
-        TextMessage message = new TextMessage(jsonResponse);
-
         connectedSessions.forEach(connectedSession -> {
             if (!connectedSession.isOpen()) {
                 return;
             }
 
-            try {
-                connectedSession.sendMessage(message);
-            } catch (IOException e) {
-                logger.error("Error al emitir a la sesión: {}", connectedSession.getId(), e);
-            }
+            sendTextSafely(connectedSession, jsonResponse);
         });
+    }
+
+    private void sendTextSafely(WebSocketSession session, String jsonResponse) {
+        TextMessage message = new TextMessage(jsonResponse);
+
+        synchronized (session) {
+            try {
+                session.sendMessage(message);
+            } catch (IllegalStateException e) {
+                logger.warn("Sesión en estado inválido al enviar mensaje: {}", session.getId(), e);
+            } catch (IOException e) {
+                logger.error("Error al enviar mensaje a la sesión: {}", session.getId(), e);
+            }
+        }
     }
 }
