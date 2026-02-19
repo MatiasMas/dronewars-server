@@ -89,7 +89,7 @@ public class GameEngine {
 
 //        logger.debug("[UPDATE] Tic: {}", currentTick);
 
-        // Colocar aqui todo lo relacionado con colisiones, posiciones, combustible, etc.
+        // Colocar aqui todo lo que sea relacionado con colisiones, posiciones, combustible, etc.
         boolean moved = movementSystem.applyMovements();
         if (moved) {
             gameStateSyncService.broadcastGameState();
