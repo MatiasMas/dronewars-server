@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import udegames.dronewarsserver.engine.GameEngine;
 import udegames.dronewarsserver.engine.GameState;
+import udegames.dronewarsserver.websocket.GameWebSocketHandler;
 
 @Configuration
 public class GameConfig {
@@ -25,8 +26,8 @@ public class GameConfig {
      * Bean means it will be managed by Spring's dependency injection system
      */
     @Bean
-    public GameEngine gameEngine(GameState gameState) {
-        GameEngine gameEngine = new GameEngine(gameState);
+    public GameEngine gameEngine(GameState gameState, GameWebSocketHandler gameWebSocketHandler) {
+        GameEngine gameEngine = new GameEngine(gameState, gameWebSocketHandler);
 
         // Creates players and units in the game state
         gameEngine.create();

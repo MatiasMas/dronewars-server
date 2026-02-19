@@ -2,6 +2,7 @@ package udegames.dronewarsserver.websocket;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -10,20 +11,22 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import udegames.dronewarsserver.domain.model.Unit;
 import udegames.dronewarsserver.dto.AvailablePlayerDTO;
+import udegames.dronewarsserver.dto.BombLaunchedDTO;
 import udegames.dronewarsserver.dto.GameUnitsDTO;
 import udegames.dronewarsserver.dto.ServerResponseDTO;
 import udegames.dronewarsserver.dto.UnitSelectionDTO;
 import udegames.dronewarsserver.engine.GameState;
 import udegames.dronewarsserver.mapper.UnitMapper;
+import udegames.dronewarsserver.service.IBombingService;
 import udegames.dronewarsserver.service.ISelectionService;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Component
 public class GameWebSocketHandler extends TextWebSocketHandler {
     private static final Set<WebSocketSession> connectedSessions = ConcurrentHashMap.newKeySet();
     private static final Map<String, String> sessionToPlayerId = new ConcurrentHashMap<>();
@@ -31,11 +34,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final GameState gameState;
     private final ISelectionService selectionService;
+    private final IBombingService bombingService;
 
     private static final Logger logger = LoggerFactory.getLogger(GameWebSocketHandler.class);
 
-    public GameWebSocketHandler(ISelectionService selectionService, GameState gameState) {
+    public GameWebSocketHandler(ISelectionService selectionService, IBombingService bombingService, GameState gameState) {
         this.selectionService = selectionService;
+        this.bombingService = bombingService;
         this.gameState = gameState;
     }
 
@@ -77,6 +82,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     break;
                 case CommunicationEvents.ClientToServerEvents.GET_PLAYER_UNITS:
                     handleGetPlayerUnits(session, root);
+                    break;
+                case CommunicationEvents.ClientToServerEvents.LAUNCH_BOMB:
+                    handleLaunchBomb(session, root);
                     break;
                 default:
                     sendErrorMessage(session, "Unknown message type: " + messageType);
@@ -189,6 +197,42 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         logger.info("Units sent to {} client: player owns {}, enemy owns {}", playerId, playerUnitDTOs.size(), enemyUnitDTOs.size());
     }
 
+    private void handleLaunchBomb(WebSocketSession session, JsonNode root) throws IOException {
+        String playerId = sessionToPlayerId.get(session.getId());
+        if (playerId == null) {
+            logger.warn("Player not registered on session: {}", session.getId());
+            sendErrorMessage(session, "Player not registered on session: " + session.getId());
+            return;
+        }
+
+        String unitId = root.get("unitId").asText();
+        if (!bombingService.canLaunchBomb(unitId, playerId)) {
+            logger.warn("Bomb cannot be launched by player {} with unit {}", playerId, unitId);
+            sendErrorMessage(session, "Bomb cannot be launched by unit: " + unitId);
+            return;
+        }
+
+        var bombProjectile = bombingService.launchBomb(unitId);
+        if (bombProjectile == null) {
+            logger.warn("Bomb launch failed for unit {}", unitId);
+            sendErrorMessage(session, "Bomb launch failed for unit: " + unitId);
+            return;
+        }
+
+        BombLaunchedDTO response = new BombLaunchedDTO(
+                bombProjectile.getId(),
+                bombProjectile.getAttackerUnitId(),
+                bombProjectile.getPosition().getX(),
+                bombProjectile.getPosition().getY(),
+                bombProjectile.getPosition().getZ()
+        );
+
+        broadcastToAll(CommunicationEvents.ServerToClientEvents.BOMB_LAUNCHED, response);
+        logger.info("Bomb launched from unit {} by player {}", unitId, playerId);
+    }
+
+
+
     private void sendErrorMessage(WebSocketSession session, String errorMessage) throws IOException {
         sendResponse(session, CommunicationEvents.ServerToClientEvents.SERVER_ERROR, errorMessage);
         logger.debug("Error sent: {}", errorMessage);
@@ -206,5 +250,28 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         ServerResponseDTO response = new ServerResponseDTO(eventType, payload);
         String jsonResponse = objectMapper.writeValueAsString(response);
         session.sendMessage(new TextMessage(jsonResponse));
+    }
+
+    public void broadcastToAll(String eventType, Object payload) {
+        ServerResponseDTO response = new ServerResponseDTO(eventType, payload);
+        String jsonResponse;
+
+        try {
+            jsonResponse = objectMapper.writeValueAsString(response);
+        } catch (RuntimeException e) {
+            logger.error("Error serializing broadcast payload for {}", eventType, e);
+            return;
+        }
+
+        TextMessage message = new TextMessage(jsonResponse);
+        connectedSessions.forEach(session -> {
+            if (session.isOpen()) {
+                try {
+                    session.sendMessage(message);
+                } catch (IOException e) {
+                    logger.error("Error broadcasting {} to session {}", eventType, session.getId(), e);
+                }
+            }
+        });
     }
 }

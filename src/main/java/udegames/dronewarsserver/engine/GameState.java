@@ -1,6 +1,7 @@
 package udegames.dronewarsserver.engine;
 
 import udegames.dronewarsserver.domain.model.Player;
+import udegames.dronewarsserver.domain.model.BombProjectile;
 import udegames.dronewarsserver.domain.model.Unit;
 
 import java.util.*;
@@ -10,12 +11,14 @@ public class GameState {
     private final String gameId;
     private final Map<String, Player> players;
     private final Map<String, Unit> units;
+    private final Map<String, BombProjectile> bombProjectiles;
     private final long createdAt;
 
     public GameState(String gameId) {
         this.gameId = gameId;
         this.players = new ConcurrentHashMap<>();
         this.units = new ConcurrentHashMap<>();
+        this.bombProjectiles = new ConcurrentHashMap<>();
         this.createdAt = System.currentTimeMillis();
     }
 
@@ -75,6 +78,22 @@ public class GameState {
 
     public List<Unit> getEnemyUnits(String playerId) {
         return units.values().stream().filter(unit -> !unit.getOwnerId().equals(playerId)).toList();
+    }
+
+    public List<Unit> getUnits() {
+        return new ArrayList<>(units.values());
+    }
+
+    public void addBombProjectile(BombProjectile bombProjectile) {
+        bombProjectiles.put(bombProjectile.getId(), bombProjectile);
+    }
+
+    public void removeBombProjectile(String bombId) {
+        bombProjectiles.remove(bombId);
+    }
+
+    public List<BombProjectile> getBombProjectiles() {
+        return new ArrayList<>(bombProjectiles.values());
     }
 
     // ------------ Validations ------------

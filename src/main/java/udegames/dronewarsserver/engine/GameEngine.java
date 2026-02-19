@@ -4,9 +4,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import udegames.dronewarsserver.domain.model.AerialCarrier;
 import udegames.dronewarsserver.domain.model.AerialDrone;
+import udegames.dronewarsserver.domain.model.BombProjectile;
 import udegames.dronewarsserver.domain.model.Player;
 import udegames.dronewarsserver.domain.model.Position;
+import udegames.dronewarsserver.domain.model.Unit;
+import udegames.dronewarsserver.dto.BombExplodedDTO;
+import udegames.dronewarsserver.dto.UnitSelectionDTO;
+import udegames.dronewarsserver.mapper.UnitMapper;
+import udegames.dronewarsserver.websocket.CommunicationEvents;
+import udegames.dronewarsserver.websocket.GameWebSocketHandler;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -14,15 +22,18 @@ import java.util.concurrent.TimeUnit;
 
 public class GameEngine {
     private final GameState gameState;
+    private final GameWebSocketHandler gameWebSocketHandler;
     private final ScheduledExecutorService executor;
     private volatile boolean running;
     private long currentTick;
 
     private static final long TICK_INTERVAL_MS = 50;
+    private static final float DELTA_TIME_SECONDS = TICK_INTERVAL_MS / 1000f;
     private static final Logger logger = LoggerFactory.getLogger(GameEngine.class);
 
-    public GameEngine(GameState gameState) {
+    public GameEngine(GameState gameState, GameWebSocketHandler gameWebSocketHandler) {
         this.gameState = gameState;
+        this.gameWebSocketHandler = gameWebSocketHandler;
 
         this.executor = Executors.newScheduledThreadPool(1, runnable -> {
             Thread thread = new Thread(runnable, "GameEngine-Tick");
@@ -83,6 +94,7 @@ public class GameEngine {
 //        logger.debug("[UPDATE] Tick: {}", currentTick);
 
         // Put here anything related to checking for collisions or updating units positions, fuel, etc.
+        updateBombProjectiles();
     }
 
     /*
@@ -104,6 +116,56 @@ public class GameEngine {
 
     public boolean isRunning() {
         return running;
+    }
+
+    private void updateBombProjectiles() {
+        List<BombProjectile> activeBombs = gameState.getBombProjectiles();
+        if (activeBombs.isEmpty()) {
+            return;
+        }
+
+        for (BombProjectile bomb : activeBombs) {
+            bomb.update(DELTA_TIME_SECONDS);
+
+            if (bomb.hasReachedGround()) {
+                resolveBombExplosion(bomb);
+                gameState.removeBombProjectile(bomb.getId());
+            }
+        }
+    }
+
+    private void resolveBombExplosion(BombProjectile bomb) {
+        List<UnitSelectionDTO> impactedUnits = new ArrayList<>();
+
+        for (Unit enemyUnit : gameState.getUnits()) {
+            if (enemyUnit.isDestroyed() || enemyUnit.getOwnerId().equals(bomb.getOwnerId())) {
+                continue;
+            }
+
+            float dx = enemyUnit.getPosition().getX() - bomb.getPosition().getX();
+            float dy = enemyUnit.getPosition().getY() - bomb.getPosition().getY();
+            float distance = (float) Math.sqrt(dx * dx + dy * dy);
+
+            if (distance <= bomb.getBlastRadius()) {
+                enemyUnit.applyDamage(bomb.getDamage());
+                impactedUnits.add(UnitMapper.toSelectionDTO(enemyUnit));
+            }
+        }
+
+        BombExplodedDTO payload = new BombExplodedDTO(
+                bomb.getId(),
+                bomb.getAttackerUnitId(),
+                bomb.getPosition().getX(),
+                bomb.getPosition().getY(),
+                impactedUnits
+        );
+
+        gameWebSocketHandler.broadcastToAll(CommunicationEvents.ServerToClientEvents.BOMB_EXPLODED, payload);
+        logger.info("Bomb {} exploded at ({}, {}), impacted {} enemy units",
+                bomb.getId(),
+                bomb.getPosition().getX(),
+                bomb.getPosition().getY(),
+                impactedUnits.size());
     }
 
     // --------------- Creating entities for the game ---------------
