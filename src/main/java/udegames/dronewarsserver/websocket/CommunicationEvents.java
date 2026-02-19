@@ -2,10 +2,10 @@ package udegames.dronewarsserver.websocket;
 
 /*
  * CommunicationEvents define todos los eventos que se transmiten entre cliente y servidor.
- * El cliente envía un evento; el servidor procesa el evento con el nombre usado aquí.
+ * El cliente envia un evento; el servidor procesa el evento con el nombre usado aqui.
  *
- * ServerToClient: Cuando el servidor envía un evento al cliente
- * ClientToServer: Cuando el cliente envía un evento al servidor
+ * ServerToClient: Cuando el servidor envia un evento al cliente
+ * ClientToServer: Cuando el cliente envia un evento al servidor
  */
 public class CommunicationEvents {
 
@@ -15,7 +15,7 @@ public class CommunicationEvents {
         public static final String SELECT_UNIT = "SELECT_UNIT";
         public static final String MOVE_UNIT = "MOVE_UNIT";
 
-        // Future
+        // Futuro
         // public static final String REQUEST_MOVE_UNIT = "REQUEST_MOVE_UNIT";
         // public static final String REQUEST_ATTACK = "REQUEST_ATTACK";
     }
@@ -29,8 +29,9 @@ public class CommunicationEvents {
         public static final String MOVE_ACCEPTED = "MOVE_ACCEPTED";
         public static final String GAME_STATE_UPDATE = "GAME_STATE_UPDATE";
 
-        // Future
+        // Futuro
         // public static final String GAME_STATE_UPDATED = "GAME_STATE_UPDATED";
         // public static final String UNIT_DESTROYED = "UNIT_DESTROYED";
     }
 }
+

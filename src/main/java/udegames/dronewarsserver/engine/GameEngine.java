@@ -6,10 +6,7 @@ import udegames.dronewarsserver.domain.model.AerialCarrier;
 import udegames.dronewarsserver.domain.model.AerialDrone;
 import udegames.dronewarsserver.domain.model.Player;
 import udegames.dronewarsserver.domain.model.Position;
-import udegames.dronewarsserver.domain.model.Unit;
-import udegames.dronewarsserver.dto.UnitPositionDTO;
-import udegames.dronewarsserver.websocket.CommunicationEvents;
-import udegames.dronewarsserver.websocket.GameWebSocketBroadcaster;
+import udegames.dronewarsserver.service.GameStateSyncService;
 
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -18,18 +15,21 @@ import java.util.concurrent.TimeUnit;
 
 public class GameEngine {
     private final GameState gameState;
-    private final GameWebSocketBroadcaster broadcaster;
+    private final GameStateSyncService gameStateSyncService;
+    private final UnitMovementSystem movementSystem;
     private final ScheduledExecutorService executor;
     private volatile boolean running;
     private long currentTick;
 
     private static final long TICK_INTERVAL_MS = 50;
+    // Umbral para considerar que la unidad ya llego al destino.
     private static final float POSITION_EPSILON = 0.01f;
     private static final Logger logger = LoggerFactory.getLogger(GameEngine.class);
 
-    public GameEngine(GameState gameState, GameWebSocketBroadcaster broadcaster) {
+    public GameEngine(GameState gameState, GameStateSyncService gameStateSyncService) {
         this.gameState = gameState;
-        this.broadcaster = broadcaster;
+        this.gameStateSyncService = gameStateSyncService;
+        this.movementSystem = new UnitMovementSystem(gameState, TICK_INTERVAL_MS, POSITION_EPSILON);
 
         this.executor = Executors.newScheduledThreadPool(1, runnable -> {
             Thread thread = new Thread(runnable, "GameEngine-Tick");
@@ -56,11 +56,11 @@ public class GameEngine {
 
     /*
      * Inicia los ticks del juego, simula los frames, definidos en TICK_INTERVAL_MS.
-     * Llama al método update que se encarga de los eventos en tiempo real.
+     * Llama al metodo update que se encarga de los eventos en tiempo real.
      */
     public void start() {
         if (running) {
-            logger.warn("[START] GameEngine ya está en ejecución");
+            logger.warn("[START] GameEngine ya esta en ejecucion");
             return;
         }
 
@@ -76,89 +76,24 @@ public class GameEngine {
     }
 
     /*
-     * Se ejecuta múltiples veces por segundo.
+     * Se ejecuta multiples veces por segundo.
      * Se encarga de verificar colisiones, actualizar posiciones, etc.
      */
     private void update() {
         if (!running) {
-            logger.warn("[UPDATE] GameEngine no está en ejecución");
+            logger.warn("[UPDATE] GameEngine no esta en ejecucion");
             return;
         }
 
         currentTick++;
 
-//        logger.debug("[UPDATE] Tick: {}", currentTick);
+//        logger.debug("[UPDATE] Tic: {}", currentTick);
 
-        // Colocar aquí todo lo relacionado con colisiones, posiciones, combustible, etc.
-        boolean moved = applyUnitMovements();
+        // Colocar aqui todo lo relacionado con colisiones, posiciones, combustible, etc.
+        boolean moved = movementSystem.applyMovements();
         if (moved) {
-            broadcastGameState();
+            gameStateSyncService.broadcastGameState();
         }
-    }
-
-    private boolean applyUnitMovements() {
-        boolean moved = false;
-        float maxStepPerTickFactor = TICK_INTERVAL_MS / 1000f;
-
-        for (var entry : gameState.getUnitMovements().entrySet()) {
-            String unitId = entry.getKey();
-            UnitMovement movement = entry.getValue();
-            Unit unit = gameState.getUnitById(unitId);
-
-            if (unit == null) {
-                gameState.clearUnitMovement(unitId);
-                continue;
-            }
-
-            Position current = unit.getPosition();
-            Position target = movement.getTarget();
-
-            float dx = target.getX() - current.getX();
-            float dy = target.getY() - current.getY();
-            float dz = target.getZ() - current.getZ();
-            float distance = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-            if (distance <= POSITION_EPSILON) {
-                unit.setPosition(target);
-                gameState.clearUnitMovement(unitId);
-                moved = true;
-                continue;
-            }
-
-            float maxStep = movement.getSpeedPerSecond() * maxStepPerTickFactor;
-            if (maxStep <= 0f) {
-                unit.setPosition(target);
-                gameState.clearUnitMovement(unitId);
-                moved = true;
-                continue;
-            }
-
-            if (distance <= maxStep) {
-                unit.setPosition(target);
-                gameState.clearUnitMovement(unitId);
-                moved = true;
-                continue;
-            }
-
-            float ratio = maxStep / distance;
-            Position newPosition = new Position(
-                    current.getX() + dx * ratio,
-                    current.getY() + dy * ratio,
-                    current.getZ() + dz * ratio
-            );
-            unit.setPosition(newPosition);
-            moved = true;
-        }
-
-        return moved;
-    }
-
-    private void broadcastGameState() {
-        List<UnitPositionDTO> unitPositions = gameState.getUnits().stream()
-                .map(unit -> new UnitPositionDTO(unit.getId(), unit.getPosition()))
-                .toList();
-
-        broadcaster.broadcast(CommunicationEvents.ServerToClientEvents.GAME_STATE_UPDATE, unitPositions);
     }
 
     /*
@@ -182,7 +117,7 @@ public class GameEngine {
         return running;
     }
 
-    // --------------- Creación de entidades para el juego ---------------
+    // --------------- Creacion de entidades para el juego ---------------
     private void createPlayers() {
         Player player1 = new Player("Player 1");
         Player player2 = new Player("Player 2");
@@ -217,7 +152,7 @@ public class GameEngine {
     }
 
     private void createPlayerUnits(Player player, String carrierId, float startingX, float startingY) {
-        // Drones aéreos
+        // Drones aereos
         Position aerialDrone1Position = new Position(startingX, startingY, 5f);
         AerialDrone aerialDrone1 = new AerialDrone(carrierId, 100f, 1, player.getId(), 1, aerialDrone1Position);
 
@@ -237,3 +172,4 @@ public class GameEngine {
         logger.debug("AerialCarrier creado: {} en ({}, {}, {})", aerialCarrier.getId(), aerialCarrierPosition.getX(), aerialCarrierPosition.getY(), aerialCarrierPosition.getZ());
     }
 }
+

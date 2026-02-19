@@ -3,9 +3,9 @@ package udegames.dronewarsserver.service;
 import udegames.dronewarsserver.domain.model.Unit;
 
 public interface ISelectionService {
-    // RF1, Validates if Player can select a unit or not
+    // RF1, valida si el jugador puede seleccionar una unidad
     boolean canSelectUnit(String unitId, String playerId);
 
-    // Gets unit to be selected
+    // Obtiene la unidad a seleccionar
     Unit getUnit(String unitId);
 }

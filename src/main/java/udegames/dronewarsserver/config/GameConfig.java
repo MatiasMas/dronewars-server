@@ -6,15 +6,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import udegames.dronewarsserver.engine.GameEngine;
 import udegames.dronewarsserver.engine.GameState;
-import udegames.dronewarsserver.websocket.GameWebSocketBroadcaster;
+import udegames.dronewarsserver.service.GameStateSyncService;
 
 @Configuration
 public class GameConfig {
     private static final Logger logger = LoggerFactory.getLogger(GameConfig.class);
 
     /*
-     * Crea una instancia única del estado del juego durante toda la ejecución.
-     * Bean significa que será gestionado por el sistema de inyección de dependencias de Spring.
+     * Crea una instancia unica del estado del juego durante toda la ejecucion.
+     * Bean significa que sera gestionado por el sistema de inyeccion de dependencias de Spring.
      */
     @Bean
     public GameState gameState() {
@@ -22,12 +22,12 @@ public class GameConfig {
     }
 
     /*
-     * Crea una instancia única del motor del juego durante toda la ejecución.
-     * Bean significa que será gestionado por el sistema de inyección de dependencias de Spring.
+     * Crea una instancia unica del motor del juego durante toda la ejecucion.
+     * Bean significa que sera gestionado por el sistema de inyeccion de dependencias de Spring.
      */
     @Bean
-    public GameEngine gameEngine(GameState gameState, GameWebSocketBroadcaster broadcaster) {
-        GameEngine gameEngine = new GameEngine(gameState, broadcaster);
+    public GameEngine gameEngine(GameState gameState, GameStateSyncService gameStateSyncService) {
+        GameEngine gameEngine = new GameEngine(gameState, gameStateSyncService);
 
         // Crea jugadores y unidades en el estado del juego
         gameEngine.create();
@@ -50,3 +50,4 @@ public class GameConfig {
         return gameEngine;
     }
 }
+
