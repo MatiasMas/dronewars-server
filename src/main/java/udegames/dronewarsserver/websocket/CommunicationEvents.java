@@ -14,6 +14,7 @@ public class CommunicationEvents {
         public static final String GET_PLAYER_UNITS = "GET_PLAYER_UNITS";
         public static final String SELECT_UNIT = "SELECT_UNIT";
         public static final String MOVE_UNIT = "MOVE_UNIT";
+        public static final String RELOAD_AMMO = "RELOAD_AMMO";
 
         // Futuro
         // public static final String REQUEST_MOVE_UNIT = "REQUEST_MOVE_UNIT";
@@ -28,6 +29,7 @@ public class CommunicationEvents {
         public static final String AVAILABLE_PLAYERS = "AVAILABLE_PLAYERS";
         public static final String MOVE_ACCEPTED = "MOVE_ACCEPTED";
         public static final String GAME_STATE_UPDATE = "GAME_STATE_UPDATE";
+        public static final String MUNICION_RECARGADA = "MUNICION_RECARGADA";
 
         // Futuro
         // public static final String GAME_STATE_UPDATED = "GAME_STATE_UPDATED";
