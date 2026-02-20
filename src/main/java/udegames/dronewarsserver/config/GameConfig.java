@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import udegames.dronewarsserver.engine.GameEngine;
 import udegames.dronewarsserver.engine.GameState;
+import udegames.dronewarsserver.service.GameStateSyncService;
 import udegames.dronewarsserver.websocket.GameWebSocketHandler;
 
 @Configuration
@@ -13,8 +14,8 @@ public class GameConfig {
     private static final Logger logger = LoggerFactory.getLogger(GameConfig.class);
 
     /*
-     * This creates a unique game state instance through the entire execution
-     * Bean means it will be managed by Spring's dependency injection system
+     * Crea una instancia unica del estado del juego durante toda la ejecucion.
+     * Bean significa que sera gestionado por el sistema de inyeccion de dependencias de Spring.
      */
     @Bean
     public GameState gameState() {
@@ -22,26 +23,26 @@ public class GameConfig {
     }
 
     /*
-     * This creates a unique game engine instance through the entire execution
-     * Bean means it will be managed by Spring's dependency injection system
+     * Crea una instancia unica del motor del juego durante toda la ejecucion.
+     * Bean significa que sera gestionado por el sistema de inyeccion de dependencias de Spring.
      */
     @Bean
-    public GameEngine gameEngine(GameState gameState, GameWebSocketHandler gameWebSocketHandler) {
-        GameEngine gameEngine = new GameEngine(gameState, gameWebSocketHandler);
+    public GameEngine gameEngine(GameState gameState, GameStateSyncService gameStateSyncService, GameWebSocketHandler gameWebSocketHandler) {
+        GameEngine gameEngine = new GameEngine(gameState, gameStateSyncService, gameWebSocketHandler);
 
-        // Creates players and units in the game state
+        // Crea jugadores y unidades en el estado del juego
         gameEngine.create();
 
-        // Starts the game engine in a separate thread and waits a little bit for the Spring server to start first
+        // Inicia el motor del juego en un hilo separado y espera a que el servidor de Spring arranque
         Thread engineStarterThread = new Thread(() -> {
             try {
                 Thread.sleep(1000);
-                logger.info("Starting game engine...");
+                logger.info("Iniciando motor del juego...");
                 gameEngine.start();
-                logger.info("Game engine started");
+                logger.info("Motor del juego iniciado");
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                logger.error("Error starting game engine: {}", e.getMessage());
+                logger.error("Error al iniciar el motor del juego: {}", e.getMessage());
             }
         }, "GameEngine-Starter");
 
@@ -50,3 +51,4 @@ public class GameConfig {
         return gameEngine;
     }
 }
+
