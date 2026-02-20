@@ -21,7 +21,7 @@ DroneWars implementa un **modelo de servidor autoritativo**, donde:
 
 ## 2. Flujo de Comunicación (WebSockets)
 
-La comunicación entre cliente y servidor se realiza mediante **mensajes JSON** a través de una **conexión WebSocket persistente** establecida en `ws://localhost:8080/game`.
+La comunicación entre cliente y servidor se realiza mediante **mensajes JSON** a través de una **conexión WebSocket persistente** establecida en `ws://localhost:8081/game`.
 
 ### Diagrama de Flujo Genérico
 
@@ -254,7 +254,7 @@ public interface CommunicationEvents {
    public async connect(): Promise<void> {
        return new Promise((resolve, reject) => {
            try {
-               this.socket = new WebSocket(this.url); // ws://localhost:8080/game
+               this.socket = new WebSocket(this.url); // ws://localhost:8081/game
 
                // Evento: Conexión exitosa
                this.socket.onopen = () => {

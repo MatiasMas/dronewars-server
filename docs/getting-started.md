@@ -218,7 +218,7 @@ public void start() {
 **Estado final del servidor**:
 - ✅ GameState con 2 jugadores y 6 unidades.
 - ✅ Motor corriendo (ticks activos).
-- ✅ WebSocket endpoint listo en `ws://localhost:8080/game`.
+- ✅ WebSocket endpoint listo en `ws://localhost:8081/game`.
 
 ---
 
@@ -282,7 +282,7 @@ async create() {
 public async connect(): Promise<void> {
     return new Promise((resolve, reject) => {
         try {
-            this.socket = new WebSocket(this.url); // ws://localhost:8080/game
+            this.socket = new WebSocket(this.url); // ws://localhost:8081/game
 
             this.socket.onopen = () => {
                 console.log("[WebSocket] Connected to server");
@@ -314,7 +314,7 @@ public async connect(): Promise<void> {
 ```
 
 **Flujo**:
-1. Crea una conexión WebSocket a `ws://localhost:8080/game`.
+1. Crea una conexión WebSocket a `ws://localhost:8081/game`.
 2. Configura listeners para `onopen`, `onclose`, `onerror`, `onmessage`.
 3. Cuando la conexión se establece, resuelve la promesa.
 
@@ -734,7 +734,7 @@ gameEngine.create()
     ↓
 gameEngine.start() → Bucle de ticks (cada 50ms)
     ↓
-Servidor listo en ws://localhost:8080/game
+Servidor listo en ws://localhost:8081/game
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [CLIENTE]
 Phaser inicia GameScene.create()

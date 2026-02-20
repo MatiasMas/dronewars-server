@@ -14,17 +14,17 @@ public class SelectionService implements ISelectionService {
 
     @Override
     public boolean canSelectUnit(String unitId, String playerId) {
-        // We check if a player exists
+        // Verificamos si el jugador existe
         if (!gameState.doesPlayerExist(playerId)) {
             return false;
         }
 
-        // We check if the unit exists
+        // Verificamos si la unidad existe
         if (gameState.getUnitById(unitId) == null) {
             return false;
         }
 
-        // Now we check if the unit belongs to the player
+        // Verificamos si la unidad pertenece al jugador
         if (!gameState.doesUnitBelongsToPlayer(unitId, playerId)) {
             return false;
         }
