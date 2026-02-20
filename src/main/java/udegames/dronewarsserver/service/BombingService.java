@@ -1,74 +1,128 @@
 package udegames.dronewarsserver.service;
 
 import org.springframework.stereotype.Service;
-import udegames.dronewarsserver.domain.enums.UnitType;
-import udegames.dronewarsserver.domain.model.BombProjectile;
 import udegames.dronewarsserver.domain.model.Drone;
 import udegames.dronewarsserver.domain.model.Position;
 import udegames.dronewarsserver.domain.model.Unit;
+import udegames.dronewarsserver.dto.BombExplodedDTO;
+import udegames.dronewarsserver.dto.BombLaunchedDTO;
+import udegames.dronewarsserver.dto.UnitSelectionDTO;
 import udegames.dronewarsserver.engine.GameState;
+import udegames.dronewarsserver.mapper.UnitMapper;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 public class BombingService implements IBombingService {
-    private static final float BOMB_FALL_SPEED = 25f;
-    private static final float BOMB_BLAST_RADIUS = 8f;
-    private static final int BOMB_DAMAGE = 2;
+    // Valores simples para explosiones (ajustables).
+    private static final float RADIO_EXPLOSION = 8f;
 
-    private final GameState gameState;
+    private final GameState estadoJuego;
 
-    public BombingService(GameState gameState) {
-        this.gameState = gameState;
+    public BombingService(GameState estadoJuego) {
+        this.estadoJuego = estadoJuego;
     }
 
     @Override
-    public boolean canLaunchBomb(String attackerUnitId, String playerId) {
-        Unit attacker = gameState.getUnitById(attackerUnitId);
-
-        if (attacker == null || attacker.isDestroyed()) {
+    public boolean canLaunchBomb(String idUnidad, String idJugador) {
+        // Validaciones simples antes de permitir el ataque.
+        if (!estadoJuego.doesPlayerExist(idJugador)) {
             return false;
         }
 
-        if (!attacker.getOwnerId().equals(playerId)) {
+        Unit unidad = estadoJuego.getUnitById(idUnidad);
+        // Solo drones pueden lanzar.
+        if (!(unidad instanceof Drone)) {
             return false;
         }
 
-        // RF8: only the selected red drone can launch bombs.
-        if (attacker.getType() != UnitType.AERIAL_DRONE) {
+        if (!estadoJuego.doesUnitBelongsToPlayer(idUnidad, idJugador)) {
             return false;
         }
 
-        if (!(attacker instanceof Drone drone)) {
+        if (!estadoJuego.isUnitAlive(idUnidad)) {
             return false;
         }
 
-        return drone.hasAmmo();
+        // Debe tener municion.
+        Drone dron = (Drone) unidad;
+        return dron.getAmmo() > 0;
     }
 
     @Override
-    public BombProjectile launchBomb(String attackerUnitId) {
-        Unit attacker = gameState.getUnitById(attackerUnitId);
-
-        if (!(attacker instanceof Drone drone)) {
+    public BombAttackResult launchBomb(String idUnidad) {
+        // Buscar la unidad y validar que sea dron.
+        Unit unidad = estadoJuego.getUnitById(idUnidad);
+        if (!(unidad instanceof Drone)) {
             return null;
         }
 
-        if (!drone.consumeAmmo()) {
+        Drone dron = (Drone) unidad;
+        // Resta una bomba; si no hay, se corta.
+        if (!dron.consumirMunicion(1)) {
             return null;
         }
 
-        Position attackerPosition = attacker.getPosition();
-        Position bombSpawnPosition = new Position(attackerPosition.getX(), attackerPosition.getY(), attackerPosition.getZ());
+        Position posicion = dron.getPosition();
+        String idBomba = UUID.randomUUID().toString();
 
-        BombProjectile projectile = new BombProjectile(
-                attacker.getId(),
-                attacker.getOwnerId(),
-                bombSpawnPosition,
-                BOMB_BLAST_RADIUS,
-                BOMB_DAMAGE,
-                BOMB_FALL_SPEED
+        // Evento de lanzamiento (para el cliente).
+        BombLaunchedDTO bombaLanzada = new BombLaunchedDTO(
+                idBomba,
+                dron.getId(),
+                posicion.getX(),
+                posicion.getY(),
+                posicion.getZ(),
+                dron.getAmmo()
         );
 
-        gameState.addBombProjectile(projectile);
-        return projectile;
+        // Evento de explosion con dano inmediato.
+        List<UnitSelectionDTO> unidadesImpactadas = new ArrayList<>();
+        for (Unit unidadObjetivo : estadoJuego.getUnits()) {
+            if (unidadObjetivo.isDestroyed()) {
+                continue;
+            }
+
+            if (unidadObjetivo.getOwnerId().equals(dron.getOwnerId())) {
+                continue;
+            }
+
+            if (!(unidadObjetivo instanceof Drone)) {
+                continue;
+            }
+
+            if (!estaEnRango(posicion, unidadObjetivo.getPosition(), RADIO_EXPLOSION)) {
+                continue;
+            }
+
+            // Si esta en rango, el dron enemigo queda con HP en 0.
+            unidadObjetivo.applyDamage(unidadObjetivo.getHealth());
+            unidadesImpactadas.add(UnitMapper.toSelectionDTO(unidadObjetivo));
+        }
+
+        BombExplodedDTO bombaExplotada = new BombExplodedDTO(
+                idBomba,
+                dron.getId(),
+                posicion.getX(),
+                posicion.getY(),
+                unidadesImpactadas
+        );
+
+        return new BombAttackResult(bombaLanzada, bombaExplotada);
+    }
+
+    private boolean estaEnRango(Position origen, Position destino, float rango) {
+        if (origen == null || destino == null) {
+            return false;
+        }
+
+        // Distancia 2D (X/Y) para explosion.
+        float dx = origen.getX() - destino.getX();
+        float dy = origen.getY() - destino.getY();
+        float distancia = (float) Math.sqrt(dx * dx + dy * dy);
+
+        return distancia <= rango;
     }
 }

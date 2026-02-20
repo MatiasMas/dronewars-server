@@ -48,14 +48,16 @@ public abstract class Unit {
         this.position = position;
     }
 
-    // Applies validated damage once and marks the unit as destroyed when health reaches zero.
-    public void applyDamage(int damage) {
-        if (destroyed || damage <= 0) {
+    // Aplica dano simple y marca destruida si llega a 0.
+    public void applyDamage(int dano) {
+        // Si no hay dano o ya esta destruida, no hacemos nada.
+        if (dano <= 0 || destroyed) {
             return;
         }
 
-        health = Math.max(0, health - damage);
-        if (health == 0) {
+        health -= dano;
+        if (health <= 0) {
+            health = 0;
             destroyed = true;
         }
     }

@@ -18,7 +18,8 @@ public abstract class Drone extends Unit {
         this.maxFuel = maxFuel;
         this.fuel = maxFuel;
         this.maxAmmo = maxAmmo;
-        this.ammo = maxAmmo;
+        // Al inicio todos los drones comienzan sin municion.
+        this.ammo = 0;
         this.state = DroneState.DOCKED;
     }
 
@@ -32,6 +33,11 @@ public abstract class Drone extends Unit {
 
     public int getAmmo() {
         return ammo;
+    }
+
+    // Maximo permitido para la unidad (segun el jugador).
+    public int getMaxAmmo() {
+        return maxAmmo;
     }
 
     public DroneState getState() {
@@ -50,16 +56,18 @@ public abstract class Drone extends Unit {
         this.ammo = maxAmmo;
     }
 
-    public boolean hasAmmo() {
-        return ammo > 0;
-    }
-
-    public boolean consumeAmmo() {
-        if (!hasAmmo()) {
+    // Consume municion si hay disponible.
+    public boolean consumirMunicion(int cantidad) {
+        if (cantidad <= 0) {
             return false;
         }
 
-        ammo--;
+        if (ammo < cantidad) {
+            // No hay suficiente municion.
+            return false;
+        }
+
+        ammo -= cantidad;
         return true;
     }
 }

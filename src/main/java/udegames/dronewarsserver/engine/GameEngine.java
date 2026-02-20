@@ -35,6 +35,12 @@ public class GameEngine {
     private static final float POSITION_EPSILON = 0.01f;
     private static final float DELTA_TIME_SECONDS = TICK_INTERVAL_MS / 1000f;
     private static final Logger logger = LoggerFactory.getLogger(GameEngine.class);
+    // Reglas de municion:
+    // Jugador 1 usa bombas (max 1), jugador 2 usa misiles (max 2).
+    private static final String ID_JUGADOR_1 = "player_1";
+    private static final String ID_JUGADOR_2 = "player_2";
+    private static final int MUNICION_MAX_JUGADOR_1 = 1;
+    private static final int MUNICION_MAX_JUGADOR_2 = 2;
 
     public GameEngine(GameState gameState, GameStateSyncService gameStateSyncService, GameWebSocketHandler gameWebSocketHandler) {
         this.gameState = gameState;
@@ -208,30 +214,49 @@ public class GameEngine {
         Player player2 = players.get(1);
 
         // Hardcodeado por ahora para tener 2 drones + 1 portadrones
-        createPlayerUnits(player1, "carrier-p1", 10f, 10f);
-        createPlayerUnits(player2, "carrier-p2", 100f, 100f);
+        createPlayerUnits(player1, 10f, 10f);
+        createPlayerUnits(player2, 100f, 100f);
 
         logger.debug("Unidades creadas para jugadores: {}", gameState.getPlayers());
     }
 
-    private void createPlayerUnits(Player player, String carrierId, float startingX, float startingY) {
+    private void createPlayerUnits(Player jugador, float inicioX, float inicioY) {
+        int municionMaxima = obtenerMaxMunicionParaJugador(jugador);
+        // Portadrones primero, asi los drones conocen el id real.
+        Position posicionPortadronesAereo = new Position(inicioX - 5f, inicioY - 5f, 5f);
+        AerialCarrier portadronesAereo = new AerialCarrier(12, jugador.getId(), 6, posicionPortadronesAereo);
+
+        gameState.addUnit(portadronesAereo);
+        logger.debug("AerialCarrier creado: {} en ({}, {}, {})", portadronesAereo.getId(), posicionPortadronesAereo.getX(), posicionPortadronesAereo.getY(), posicionPortadronesAereo.getZ());
+
+        String idPortadronesReal = portadronesAereo.getId();
         // Drones aereos
-        Position aerialDrone1Position = new Position(startingX, startingY, 5f);
-        AerialDrone aerialDrone1 = new AerialDrone(carrierId, 100f, 1, player.getId(), 1, aerialDrone1Position);
+        Position posicionDronAereo1 = new Position(inicioX, inicioY, 5f);
+        AerialDrone dronAereo1 = new AerialDrone(idPortadronesReal, 100f, municionMaxima, jugador.getId(), 1, posicionDronAereo1);
 
-        gameState.addUnit(aerialDrone1);
-        logger.debug("AerialDrone creado: {} en ({}, {}, {})", aerialDrone1.getId(), aerialDrone1Position.getX(), aerialDrone1Position.getY(), aerialDrone1Position.getZ());
+        gameState.addUnit(dronAereo1);
+        logger.debug("AerialDrone creado: {} en ({}, {}, {})", dronAereo1.getId(), posicionDronAereo1.getX(), posicionDronAereo1.getY(), posicionDronAereo1.getZ());
 
-        Position aerialDrone2Position = new Position(startingX + 5f, startingY + 5f, 5f);
-        AerialDrone aerialDrone2 = new AerialDrone(carrierId, 100f, 1, player.getId(), 1, aerialDrone2Position);
+        Position posicionDronAereo2 = new Position(inicioX + 5f, inicioY + 5f, 5f);
+        AerialDrone dronAereo2 = new AerialDrone(idPortadronesReal, 100f, municionMaxima, jugador.getId(), 1, posicionDronAereo2);
 
-        gameState.addUnit(aerialDrone2);
-        logger.debug("AerialDrone creado: {} en ({}, {}, {})", aerialDrone2.getId(), aerialDrone2Position.getX(), aerialDrone2Position.getY(), aerialDrone2Position.getZ());
+        gameState.addUnit(dronAereo2);
+        logger.debug("AerialDrone creado: {} en ({}, {}, {})", dronAereo2.getId(), posicionDronAereo2.getX(), posicionDronAereo2.getY(), posicionDronAereo2.getZ());
+    }
 
-        Position aerialCarrierPosition = new Position(startingX - 5f, startingY - 5f, 5f);
-        AerialCarrier aerialCarrier = new AerialCarrier(12, player.getId(), 6, aerialCarrierPosition);
+    private int obtenerMaxMunicionParaJugador(Player jugador) {
+        if (jugador == null) {
+            return MUNICION_MAX_JUGADOR_1;
+        }
 
-        gameState.addUnit(aerialCarrier);
-        logger.debug("AerialCarrier creado: {} en ({}, {}, {})", aerialCarrier.getId(), aerialCarrierPosition.getX(), aerialCarrierPosition.getY(), aerialCarrierPosition.getZ());
+        if (ID_JUGADOR_1.equals(jugador.getId())) {
+            return MUNICION_MAX_JUGADOR_1;
+        }
+
+        if (ID_JUGADOR_2.equals(jugador.getId())) {
+            return MUNICION_MAX_JUGADOR_2;
+        }
+
+        return MUNICION_MAX_JUGADOR_1;
     }
 }
