@@ -9,14 +9,16 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import udegames.dronewarsserver.domain.model.Unit;
 import udegames.dronewarsserver.domain.model.Position;
+import udegames.dronewarsserver.domain.model.Unit;
 import udegames.dronewarsserver.dto.AvailablePlayerDTO;
+import udegames.dronewarsserver.dto.BombLaunchedDTO;
 import udegames.dronewarsserver.dto.GameUnitsDTO;
 import udegames.dronewarsserver.dto.ServerResponseDTO;
 import udegames.dronewarsserver.dto.UnitSelectionDTO;
 import udegames.dronewarsserver.engine.GameState;
 import udegames.dronewarsserver.mapper.UnitMapper;
+import udegames.dronewarsserver.service.IBombingService;
 import udegames.dronewarsserver.service.IMovementService;
 import udegames.dronewarsserver.service.ISelectionService;
 
@@ -35,11 +37,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private final GameState gameState;
     private final ISelectionService selectionService;
     private final IMovementService movementService;
+    private final IBombingService bombingService;
 
     private static final Logger logger = LoggerFactory.getLogger(GameWebSocketHandler.class);
 
-    public GameWebSocketHandler(ISelectionService selectionService, GameState gameState, IMovementService movementService) {
+    public GameWebSocketHandler(ISelectionService selectionService, GameState gameState, IMovementService movementService, IBombingService bombingService) {
         this.selectionService = selectionService;
+        this.bombingService = bombingService;
         this.gameState = gameState;
         this.movementService = movementService;
     }
@@ -86,6 +90,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     break;
                 case CommunicationEvents.ClientToServerEvents.GET_PLAYER_UNITS:
                     handleGetPlayerUnits(session, root);
+                    break;
+                case CommunicationEvents.ClientToServerEvents.LAUNCH_BOMB:
+                    handleLaunchBomb(session, root);
                     break;
                 case CommunicationEvents.ClientToServerEvents.MOVE_UNIT:
                     handleMoveUnit(session, root);
@@ -257,6 +264,41 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         logger.info("Movimiento aceptado: unitId={}, target=({}, {}, {})", unitId, targetX, targetY, targetZ);
     }
 
+    private void handleLaunchBomb(WebSocketSession session, JsonNode root) throws IOException {
+        String playerId = sessionToPlayerId.get(session.getId());
+        if (playerId == null) {
+            logger.warn("Player not registered on session: {}", session.getId());
+            sendErrorMessage(session, "Player not registered on session: " + session.getId());
+            return;
+        }
+
+        String unitId = root.get("unitId").asText();
+        if (!bombingService.canLaunchBomb(unitId, playerId)) {
+            logger.warn("Bomb cannot be launched by player {} with unit {}", playerId, unitId);
+            sendErrorMessage(session, "Bomb cannot be launched by unit: " + unitId);
+            return;
+        }
+
+        var bombProjectile = bombingService.launchBomb(unitId);
+        if (bombProjectile == null) {
+            logger.warn("Bomb launch failed for unit {}", unitId);
+            sendErrorMessage(session, "Bomb launch failed for unit: " + unitId);
+            return;
+        }
+
+        BombLaunchedDTO response = new BombLaunchedDTO(
+                bombProjectile.getId(),
+                bombProjectile.getAttackerUnitId(),
+                bombProjectile.getPosition().getX(),
+                bombProjectile.getPosition().getY(),
+                bombProjectile.getPosition().getZ()
+        );
+
+        broadcastToAll(CommunicationEvents.ServerToClientEvents.BOMB_LAUNCHED, response);
+        logger.info("Bomb launched from unit {} by player {}", unitId, playerId);
+    }
+
+
     private void sendErrorMessage(WebSocketSession session, String errorMessage) throws IOException {
         sendResponse(session, CommunicationEvents.ServerToClientEvents.SERVER_ERROR, errorMessage);
         logger.debug("Error enviado: {}", errorMessage);
@@ -327,4 +369,3 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
     }
 }
-
