@@ -9,7 +9,6 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import udegames.dronewarsserver.domain.model.Unit;
 import udegames.dronewarsserver.domain.model.Position;
 import udegames.dronewarsserver.dto.AmmoReloadedDTO;
 import udegames.dronewarsserver.dto.AvailablePlayerDTO;
@@ -53,6 +52,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             IBombingService bombingService
     ) {
         this.selectionService = selectionService;
+        this.bombingService = bombingService;
         this.gameState = gameState;
         this.movementService = movementService;
         this.servicioMunicion = servicioMunicion;
@@ -101,6 +101,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     break;
                 case CommunicationEvents.ClientToServerEvents.GET_PLAYER_UNITS:
                     handleGetPlayerUnits(session, root);
+                    break;
+                case CommunicationEvents.ClientToServerEvents.LAUNCH_BOMB:
+                    handleLaunchBomb(session, root);
                     break;
                 case CommunicationEvents.ClientToServerEvents.MOVE_UNIT:
                     handleMoveUnit(session, root);
