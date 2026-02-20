@@ -10,6 +10,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import udegames.dronewarsserver.domain.model.Position;
+import udegames.dronewarsserver.domain.model.Unit;
 import udegames.dronewarsserver.dto.AmmoReloadedDTO;
 import udegames.dronewarsserver.dto.AvailablePlayerDTO;
 import udegames.dronewarsserver.dto.BombExplodedDTO;
@@ -56,7 +57,6 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         this.gameState = gameState;
         this.movementService = movementService;
         this.servicioMunicion = servicioMunicion;
-        this.bombingService = bombingService;
     }
 
     @Override
@@ -110,10 +110,6 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     break;
                 case CommunicationEvents.ClientToServerEvents.RELOAD_AMMO:
                     handleRecargarMunicion(session, root);
-                    break;
-                case CommunicationEvents.ClientToServerEvents.LAUNCH_BOMB:
-                    // Lanzar bomba y notificar a todos.
-                    handleLaunchBomb(session, root);
                     break;
                 default:
                     sendErrorMessage(session, "Tipo de mensaje desconocido: " + messageType);

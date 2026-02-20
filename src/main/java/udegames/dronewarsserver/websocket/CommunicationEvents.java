@@ -16,8 +16,6 @@ public class CommunicationEvents {
         public static final String LAUNCH_BOMB = "LAUNCH_BOMB";
         public static final String MOVE_UNIT = "MOVE_UNIT";
         public static final String RELOAD_AMMO = "RELOAD_AMMO";
-        // Ataque con bomba (jugador 1).
-        public static final String LAUNCH_BOMB = "LAUNCH_BOMB";
 
         // Futuro
         // public static final String REQUEST_MOVE_UNIT = "REQUEST_MOVE_UNIT";
@@ -35,9 +33,6 @@ public class CommunicationEvents {
         public static final String MOVE_ACCEPTED = "MOVE_ACCEPTED";
         public static final String GAME_STATE_UPDATE = "GAME_STATE_UPDATE";
         public static final String MUNICION_RECARGADA = "MUNICION_RECARGADA";
-        // Eventos de bombas.
-        public static final String BOMB_LAUNCHED = "BOMB_LAUNCHED";
-        public static final String BOMB_EXPLODED = "BOMB_EXPLODED";
 
         // Futuro
         // public static final String GAME_STATE_UPDATED = "GAME_STATE_UPDATED";
