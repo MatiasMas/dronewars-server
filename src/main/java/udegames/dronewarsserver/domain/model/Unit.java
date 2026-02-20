@@ -47,16 +47,4 @@ public abstract class Unit {
     public void setPosition(Position position) {
         this.position = position;
     }
-
-    // Applies validated damage once and marks the unit as destroyed when health reaches zero.
-    public void applyDamage(int damage) {
-        if (destroyed || damage <= 0) {
-            return;
-        }
-
-        health = Math.max(0, health - damage);
-        if (health == 0) {
-            destroyed = true;
-        }
-    }
 }

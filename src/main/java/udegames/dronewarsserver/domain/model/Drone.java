@@ -49,17 +49,4 @@ public abstract class Drone extends Unit {
     public void reload() {
         this.ammo = maxAmmo;
     }
-
-    public boolean hasAmmo() {
-        return ammo > 0;
-    }
-
-    public boolean consumeAmmo() {
-        if (!hasAmmo()) {
-            return false;
-        }
-
-        ammo--;
-        return true;
-    }
 }

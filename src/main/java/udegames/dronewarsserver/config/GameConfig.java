@@ -7,7 +7,6 @@ import org.springframework.context.annotation.Configuration;
 import udegames.dronewarsserver.engine.GameEngine;
 import udegames.dronewarsserver.engine.GameState;
 import udegames.dronewarsserver.service.GameStateSyncService;
-import udegames.dronewarsserver.websocket.GameWebSocketHandler;
 
 @Configuration
 public class GameConfig {

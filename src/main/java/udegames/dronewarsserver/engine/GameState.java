@@ -1,8 +1,9 @@
 package udegames.dronewarsserver.engine;
 
 import udegames.dronewarsserver.domain.model.Player;
-import udegames.dronewarsserver.domain.model.BombProjectile;
+import udegames.dronewarsserver.domain.model.Position;
 import udegames.dronewarsserver.domain.model.Unit;
+import udegames.dronewarsserver.engine.movement.UnitMovement;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -11,14 +12,14 @@ public class GameState {
     private final String gameId;
     private final Map<String, Player> players;
     private final Map<String, Unit> units;
-    private final Map<String, BombProjectile> bombProjectiles;
+    private final Map<String, UnitMovement> unitMovements;
     private final long createdAt;
 
     public GameState(String gameId) {
         this.gameId = gameId;
         this.players = new ConcurrentHashMap<>();
         this.units = new ConcurrentHashMap<>();
-        this.bombProjectiles = new ConcurrentHashMap<>();
+        this.unitMovements = new ConcurrentHashMap<>();
         this.createdAt = System.currentTimeMillis();
     }
 
@@ -26,7 +27,7 @@ public class GameState {
         return gameId;
     }
 
-    // ------------ Player Management ------------
+    // ------------ Gestion de jugadores ------------
     public void addPlayer(Player player) {
         players.put(player.getId(), player);
     }
@@ -39,7 +40,7 @@ public class GameState {
         return new ArrayList<>(players.values());
     }
 
-    // ------------ Units Management ------------
+    // ------------ Gestion de unidades ------------
     public void addUnit(Unit unit) {
         units.put(unit.getId(), unit);
 
@@ -52,6 +53,7 @@ public class GameState {
 
     public void removeUnit(String unitId) {
         Unit unit = units.remove(unitId);
+        unitMovements.remove(unitId);
 
         if (unit != null) {
             Player owner = players.get(unit.getOwnerId());
@@ -84,19 +86,20 @@ public class GameState {
         return new ArrayList<>(units.values());
     }
 
-    public void addBombProjectile(BombProjectile bombProjectile) {
-        bombProjectiles.put(bombProjectile.getId(), bombProjectile);
+    // ------------ Gestion de movimiento ------------
+    public void setUnitMovement(String unitId, Position target, float speedPerSecond) {
+        unitMovements.put(unitId, new UnitMovement(target, speedPerSecond));
     }
 
-    public void removeBombProjectile(String bombId) {
-        bombProjectiles.remove(bombId);
+    public void clearUnitMovement(String unitId) {
+        unitMovements.remove(unitId);
     }
 
-    public List<BombProjectile> getBombProjectiles() {
-        return new ArrayList<>(bombProjectiles.values());
+    public Map<String, UnitMovement> getUnitMovements() {
+        return unitMovements;
     }
 
-    // ------------ Validations ------------
+    // ------------ Validaciones ------------
     public boolean doesUnitBelongsToPlayer(String unitId, String playerId) {
         Unit unit = getUnitById(unitId);
 
@@ -113,3 +116,4 @@ public class GameState {
         return players.containsKey(playerId);
     }
 }
+
