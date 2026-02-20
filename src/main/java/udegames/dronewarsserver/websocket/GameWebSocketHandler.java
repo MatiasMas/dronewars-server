@@ -13,12 +13,15 @@ import udegames.dronewarsserver.domain.model.Unit;
 import udegames.dronewarsserver.domain.model.Position;
 import udegames.dronewarsserver.dto.AmmoReloadedDTO;
 import udegames.dronewarsserver.dto.AvailablePlayerDTO;
+import udegames.dronewarsserver.dto.BombExplodedDTO;
+import udegames.dronewarsserver.dto.BombLaunchedDTO;
 import udegames.dronewarsserver.dto.GameUnitsDTO;
 import udegames.dronewarsserver.dto.ServerResponseDTO;
 import udegames.dronewarsserver.dto.UnitSelectionDTO;
 import udegames.dronewarsserver.engine.GameState;
 import udegames.dronewarsserver.mapper.UnitMapper;
 import udegames.dronewarsserver.service.IAmmoService;
+import udegames.dronewarsserver.service.IBombingService;
 import udegames.dronewarsserver.service.IMovementService;
 import udegames.dronewarsserver.service.ISelectionService;
 
@@ -38,14 +41,22 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private final ISelectionService selectionService;
     private final IMovementService movementService;
     private final IAmmoService servicioMunicion;
+    private final IBombingService bombingService;
 
     private static final Logger logger = LoggerFactory.getLogger(GameWebSocketHandler.class);
 
-    public GameWebSocketHandler(ISelectionService selectionService, GameState gameState, IMovementService movementService, IAmmoService servicioMunicion) {
+    public GameWebSocketHandler(
+            ISelectionService selectionService,
+            GameState gameState,
+            IMovementService movementService,
+            IAmmoService servicioMunicion,
+            IBombingService bombingService
+    ) {
         this.selectionService = selectionService;
         this.gameState = gameState;
         this.movementService = movementService;
         this.servicioMunicion = servicioMunicion;
+        this.bombingService = bombingService;
     }
 
     @Override
@@ -96,6 +107,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     break;
                 case CommunicationEvents.ClientToServerEvents.RELOAD_AMMO:
                     handleRecargarMunicion(session, root);
+                    break;
+                case CommunicationEvents.ClientToServerEvents.LAUNCH_BOMB:
+                    // Lanzar bomba y notificar a todos.
+                    handleLaunchBomb(session, root);
                     break;
                 default:
                     sendErrorMessage(session, "Tipo de mensaje desconocido: " + messageType);
@@ -320,6 +335,46 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         sendResponse(session, CommunicationEvents.ServerToClientEvents.MUNICION_RECARGADA, response);
 
         logger.info("Municion recargada: unitId={}, ammo={}", idUnidad, municion);
+    }
+
+    private void handleLaunchBomb(WebSocketSession session, JsonNode root) throws IOException {
+        String idJugador = sessionToPlayerId.get(session.getId());
+        if (idJugador == null) {
+            logger.warn("Jugador no registrado en la sesion: {}", session.getId());
+            sendErrorMessage(session, "Jugador no registrado en la sesion: " + session.getId());
+            return;
+        }
+
+        JsonNode datos = obtenerDatos(root);
+        JsonNode nodoIdUnidad = datos.get("unitId");
+        if (nodoIdUnidad == null || nodoIdUnidad.isNull()) {
+            logger.warn("Payload de ataque invalido");
+            sendErrorMessage(session, "Payload de ataque invalido");
+            return;
+        }
+
+        String idUnidad = nodoIdUnidad.asText();
+        if (!bombingService.canLaunchBomb(idUnidad, idJugador)) {
+            logger.warn("Ataque invalido: unitId={}", idUnidad);
+            sendErrorMessage(session, "Ataque invalido");
+            return;
+        }
+
+        IBombingService.BombAttackResult resultado = bombingService.launchBomb(idUnidad);
+        if (resultado == null) {
+            logger.warn("No se pudo lanzar bomba: {}", idUnidad);
+            sendErrorMessage(session, "No se pudo lanzar bomba");
+            return;
+        }
+
+        BombLaunchedDTO bombaLanzada = resultado.getBombLaunched();
+        BombExplodedDTO bombaExplotada = resultado.getBombExploded();
+
+        // Notificamos a todos para actualizar UI en tiempo real.
+        broadcastToAll(CommunicationEvents.ServerToClientEvents.BOMB_LAUNCHED, bombaLanzada);
+        broadcastToAll(CommunicationEvents.ServerToClientEvents.BOMB_EXPLODED, bombaExplotada);
+
+        logger.info("Bomba lanzada: unitId={}, bombId={}", idUnidad, bombaLanzada.getBombId());
     }
 
     private void sendErrorMessage(WebSocketSession session, String errorMessage) {

@@ -10,7 +10,7 @@ import udegames.dronewarsserver.engine.GameState;
 @Service
 public class AmmoService implements IAmmoService {
     // Rango maximo permitido para recargar (en unidades del mundo).
-    private static final float RANGO_RECARGA_UNIDADES = 15f;
+    private static final float RANGO_RECARGA_UNIDADES = 20f;
 
     private final GameState estadoJuego;
 
@@ -40,7 +40,7 @@ public class AmmoService implements IAmmoService {
 
         Drone dron = (Drone) unidad;
 
-        // Usamos carrierId del payload si viene, si no el del dron.
+        // Usamos carrierId del payload si viene. Si no sirve, usamos el del dron.
         String idPortadronesEfectivo = (idPortadrones != null && !idPortadrones.isBlank())
                 ? idPortadrones
                 : dron.getCarrierId();
@@ -48,21 +48,31 @@ public class AmmoService implements IAmmoService {
             return false;
         }
 
+        // Validamos el portadrones (del payload o del dron).
         Unit unidadPortadrones = estadoJuego.getUnitById(idPortadronesEfectivo);
-        if (!(unidadPortadrones instanceof DroneCarrier)) {
-            return false;
+        if (!(unidadPortadrones instanceof DroneCarrier) || !idJugador.equals(unidadPortadrones.getOwnerId())) {
+            // Si el portadrones enviado no coincide, probamos con el del dron.
+            String idPortadronesDron = dron.getCarrierId();
+            unidadPortadrones = estadoJuego.getUnitById(idPortadronesDron);
+            if (!(unidadPortadrones instanceof DroneCarrier) || !idJugador.equals(unidadPortadrones.getOwnerId())) {
+                return false;
+            }
+            idPortadronesEfectivo = idPortadronesDron;
         }
 
-        if (!idJugador.equals(unidadPortadrones.getOwnerId())) {
-            return false;
-        }
-
+        // Revisamos rango 2D para recarga.
         if (!estaEnRango(dron.getPosition(), unidadPortadrones.getPosition())) {
+            Position posicionDron = dron.getPosition();
+            Position posicionPortadrones = unidadPortadrones.getPosition();
             return false;
         }
 
         // No exceder el maximo permitido.
-        return dron.getAmmo() < dron.getMaxAmmo();
+        if (dron.getAmmo() >= dron.getMaxAmmo()) {
+            return false;
+        }
+
+        return true;
     }
 
     @Override
@@ -85,8 +95,7 @@ public class AmmoService implements IAmmoService {
 
         float dx = posicionDron.getX() - posicionPortadrones.getX();
         float dy = posicionDron.getY() - posicionPortadrones.getY();
-        float dz = posicionDron.getZ() - posicionPortadrones.getZ();
-        float distancia = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
+        float distancia = (float) Math.sqrt(dx * dx + dy * dy);
 
         return distancia <= RANGO_RECARGA_UNIDADES;
     }

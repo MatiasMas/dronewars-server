@@ -55,4 +55,19 @@ public abstract class Drone extends Unit {
     public void reload() {
         this.ammo = maxAmmo;
     }
+
+    // Consume municion si hay disponible.
+    public boolean consumirMunicion(int cantidad) {
+        if (cantidad <= 0) {
+            return false;
+        }
+
+        if (ammo < cantidad) {
+            // No hay suficiente municion.
+            return false;
+        }
+
+        ammo -= cantidad;
+        return true;
+    }
 }

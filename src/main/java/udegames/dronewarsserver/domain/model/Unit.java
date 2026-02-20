@@ -47,4 +47,18 @@ public abstract class Unit {
     public void setPosition(Position position) {
         this.position = position;
     }
+
+    // Aplica dano simple y marca destruida si llega a 0.
+    public void applyDamage(int dano) {
+        // Si no hay dano o ya esta destruida, no hacemos nada.
+        if (dano <= 0 || destroyed) {
+            return;
+        }
+
+        health -= dano;
+        if (health <= 0) {
+            health = 0;
+            destroyed = true;
+        }
+    }
 }
