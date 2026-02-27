@@ -16,12 +16,14 @@ import udegames.dronewarsserver.dto.AvailablePlayerDTO;
 import udegames.dronewarsserver.dto.BombExplodedDTO;
 import udegames.dronewarsserver.dto.BombLaunchedDTO;
 import udegames.dronewarsserver.dto.GameUnitsDTO;
+import udegames.dronewarsserver.dto.MisilLanzadoDTO;
 import udegames.dronewarsserver.dto.ServerResponseDTO;
 import udegames.dronewarsserver.dto.UnitSelectionDTO;
 import udegames.dronewarsserver.engine.GameState;
 import udegames.dronewarsserver.mapper.UnitMapper;
 import udegames.dronewarsserver.service.IAmmoService;
 import udegames.dronewarsserver.service.IBombingService;
+import udegames.dronewarsserver.service.IMissileService;
 import udegames.dronewarsserver.service.IMovementService;
 import udegames.dronewarsserver.service.ISelectionService;
 
@@ -42,6 +44,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private final IMovementService movementService;
     private final IAmmoService servicioMunicion;
     private final IBombingService bombingService;
+    private final IMissileService servicioMisil;
 
     private static final Logger logger = LoggerFactory.getLogger(GameWebSocketHandler.class);
 
@@ -50,13 +53,15 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             GameState gameState,
             IMovementService movementService,
             IAmmoService servicioMunicion,
-            IBombingService bombingService
+            IBombingService bombingService,
+            IMissileService servicioMisil
     ) {
         this.selectionService = selectionService;
         this.bombingService = bombingService;
         this.gameState = gameState;
         this.movementService = movementService;
         this.servicioMunicion = servicioMunicion;
+        this.servicioMisil = servicioMisil;
     }
 
     @Override
@@ -90,6 +95,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             JsonNode root = objectMapper.readTree(payload);
             JsonNode typeNode = root.get("type");
             String messageType = typeNode == null ? "" : typeNode.asText();
+            if (messageType != null && !messageType.isBlank()) {
+                // Normalizamos espacios para evitar errores por tipeo en el evento.
+                messageType = messageType.trim().replaceAll("\\s+", "_");
+            }
             logger.info("Mensaje recibido, tipo: {}, sesion: {}", messageType, session.getId());
 
             switch (messageType) {
@@ -110,6 +119,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     break;
                 case CommunicationEvents.ClientToServerEvents.RELOAD_AMMO:
                     handleRecargarMunicion(session, root);
+                    break;
+                case CommunicationEvents.ClientToServerEvents.LAUNCH_MISSILE:
+                    hanldeDispararMisil(session, root);
                     break;
                 default:
                     sendErrorMessage(session, "Tipo de mensaje desconocido: " + messageType);
@@ -376,6 +388,60 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         logger.info("Bomba lanzada: unitId={}, bombId={}", idUnidad, bombaLanzada.getBombId());
     }
 
+    private  void hanldeDispararMisil(WebSocketSession session, JsonNode root) throws IOException {
+        String idJugador = sessionToPlayerId.get(session.getId());
+        if(idJugador == null) {
+            logger.warn("Jugador no registrado en la sesion: {}", session.getId());
+            return;
+        }
+
+        JsonNode datos = obtenerDatos(root);
+        JsonNode nodoIdUnidad = datos.get("unitId");
+        JsonNode nodoIdObjetivo = datos.get("objetivoId");
+        if (nodoIdObjetivo == null || nodoIdObjetivo.isNull()) {
+            nodoIdObjetivo = datos.get("targetUnitId");
+        }
+        JsonNode nodoX = datos.get("targetX");
+        JsonNode nodoY = datos.get("targetY");
+
+        if(nodoIdUnidad == null || nodoIdUnidad.isNull()) {
+            logger.warn("Payload de misil invalido");
+            sendErrorMessage(session, "Payload de misil invalido");
+            return;
+        }
+
+        String idUnidad = nodoIdUnidad.asText();
+        String objetivoId = nodoIdObjetivo == null ? null : nodoIdObjetivo.asText();
+        Float objetivoX = nodoX == null || nodoX.isNull() ? null : (float) nodoX.asDouble();
+        Float objetivoY = nodoY == null || nodoY.isNull() ? null : (float) nodoY.asDouble();
+
+        if ((objetivoId == null || objetivoId.isBlank()) && (objetivoX == null || objetivoY == null)) {
+            logger.warn("Payload de misil invalido");
+            sendErrorMessage(session, "Payload de misil invalido");
+            return;
+        }
+
+        if(!servicioMisil.puedeDisparar(idUnidad, idJugador, objetivoId, objetivoX, objetivoY)) {
+            logger.warn("Disparo invalido: UnitId={}, objetivoId={}", idUnidad, objetivoId);
+            sendErrorMessage(session, "Disparo invalido");
+            return;
+        }
+
+        IMissileService.resultadoDisparoMisil resultado = servicioMisil.lanzarMisil(idUnidad, objetivoId, objetivoX, objetivoY);
+        if (resultado == null){
+            logger.warn("No se pudo lanzar misil: {}", idUnidad);
+            sendErrorMessage(session, "No se pudo lanzar misil: " + idUnidad);
+            return;
+        }
+
+        MisilLanzadoDTO misilLanzado = resultado.getMisilLanzado();
+
+        //Actualizamos UI en tiempo real
+        broadcastToAll(CommunicationEvents.ServerToClientEvents.MISIL_DISPARADO, misilLanzado);
+
+        logger.info("Misil disparado: unitId={}, misilId={}", idUnidad, misilLanzado.getMisilId());
+    }
+
     private void sendErrorMessage(WebSocketSession session, String errorMessage) {
         try {
             sendResponse(session, CommunicationEvents.ServerToClientEvents.SERVER_ERROR, errorMessage);
@@ -467,5 +533,6 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
         return root;
     }
+
 }
 
