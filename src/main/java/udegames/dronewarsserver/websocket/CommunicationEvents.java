@@ -14,6 +14,8 @@ public class CommunicationEvents {
         public static final String GET_PLAYER_UNITS = "GET_PLAYER_UNITS";
         public static final String SELECT_UNIT = "SELECT_UNIT";
         public static final String LAUNCH_BOMB = "LAUNCH_BOMB";
+        public static final String LAUNCH_MISSILE = "LAUNCH_MISSILE";
+        public static final String LANZAR_MISSILE = "LANZAR_MISSILE";
         public static final String MOVE_UNIT = "MOVE_UNIT";
         public static final String RELOAD_AMMO = "RELOAD_AMMO";
 
@@ -30,6 +32,9 @@ public class CommunicationEvents {
         public static final String AVAILABLE_PLAYERS = "AVAILABLE_PLAYERS";
         public static final String BOMB_LAUNCHED = "BOMB_LAUNCHED";
         public static final String BOMB_EXPLODED = "BOMB_EXPLODED";
+        public static final String MISIL_DISPARADO = "MISIL_DISPARADO";
+        public static final String MISIL_ACTUALIZADO = "MISIL_ACTUALIZADO";
+        public static final String MISIL_IMPACTADO = "MISIL_IMPACTADO";
         public static final String MOVE_ACCEPTED = "MOVE_ACCEPTED";
         public static final String GAME_STATE_UPDATE = "GAME_STATE_UPDATE";
         public static final String MUNICION_RECARGADA = "MUNICION_RECARGADA";

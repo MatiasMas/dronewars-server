@@ -5,11 +5,15 @@ import org.slf4j.LoggerFactory;
 import udegames.dronewarsserver.domain.model.AerialCarrier;
 import udegames.dronewarsserver.domain.model.AerialDrone;
 import udegames.dronewarsserver.domain.model.BombProjectile;
+import udegames.dronewarsserver.domain.model.Drone;
+import udegames.dronewarsserver.domain.model.MissileProjectile;
 import udegames.dronewarsserver.domain.model.Player;
 import udegames.dronewarsserver.domain.model.Position;
 import udegames.dronewarsserver.service.GameStateSyncService;
 import udegames.dronewarsserver.domain.model.Unit;
 import udegames.dronewarsserver.dto.BombExplodedDTO;
+import udegames.dronewarsserver.dto.MisilActualizadoDTO;
+import udegames.dronewarsserver.dto.MisilImpactoDTO;
 import udegames.dronewarsserver.dto.UnitSelectionDTO;
 import udegames.dronewarsserver.mapper.UnitMapper;
 import udegames.dronewarsserver.websocket.CommunicationEvents;
@@ -41,6 +45,12 @@ public class GameEngine {
     private static final String ID_JUGADOR_2 = "player_2";
     private static final int MUNICION_MAX_JUGADOR_1 = 1;
     private static final int MUNICION_MAX_JUGADOR_2 = 2;
+    private static final int DANO_MISIL = 1;
+    private static final float RANGO_EXPLOSION_MISIL = 8f;
+    private static final float MIN_X = 0f;
+    private static final float MAX_X = 200f;
+    private static final float MIN_Y = 0f;
+    private static final float MAX_Y = 200f;
 
     public GameEngine(GameState gameState, GameStateSyncService gameStateSyncService, GameWebSocketHandler gameWebSocketHandler) {
         this.gameState = gameState;
@@ -108,6 +118,7 @@ public class GameEngine {
 
         // Colocar aqui todo lo que sea relacionado con colisiones, posiciones, combustible, etc.
         updateBombProjectiles();
+        updateMissileProjectiles();
 
         boolean moved = movementSystem.applyMovements();
         if (moved) {
@@ -184,6 +195,102 @@ public class GameEngine {
                 bomb.getPosition().getX(),
                 bomb.getPosition().getY(),
                 impactedUnits.size());
+    }
+
+    private void updateMissileProjectiles() {
+        List<MissileProjectile> misiles = gameState.getMissileProjectiles();
+        if (misiles.isEmpty()) {
+            return;
+        }
+
+        for (MissileProjectile misil : misiles) {
+            // Mover el misil
+            misil.update(misil.getDestinoFijo(), DELTA_TIME_SECONDS);
+
+            // Si sale del mapa, lo eliminamos
+            if (estaFueraDeMapa(misil.getPosition())) {
+                MisilImpactoDTO impactoVacio = new MisilImpactoDTO(
+                        misil.getId(),
+                        misil.getAttackerUnitId(),
+                        null,
+                        new ArrayList<>()
+                );
+                gameWebSocketHandler.broadcastToAll(CommunicationEvents.ServerToClientEvents.MISIL_IMPACTADO, impactoVacio);
+                gameState.removeMissileProjectile(misil.getId());
+                continue;
+            }
+
+            // Enviar posicion del misil al cliente
+            MisilActualizadoDTO actualizado = new MisilActualizadoDTO(
+                    misil.getId(),
+                    misil.getPosition().getX(),
+                    misil.getPosition().getY(),
+                    misil.getPosition().getZ()
+            );
+            gameWebSocketHandler.broadcastToAll(CommunicationEvents.ServerToClientEvents.MISIL_ACTUALIZADO, actualizado);
+
+            // Vemos si paso cerca de un dron enemigo
+            float rangoCuadrado = RANGO_EXPLOSION_MISIL * RANGO_EXPLOSION_MISIL;
+            List<UnitSelectionDTO> impactadas = new ArrayList<>();
+
+            for (Unit unidad : gameState.getUnits()) {
+                if (unidad.isDestroyed()) {
+                    continue;
+                }
+
+                if (unidad.getOwnerId().equals(misil.getOwnerId())) {
+                    continue;
+                }
+
+                if (!(unidad instanceof Drone)) {
+                    continue;
+                }
+
+                float dx = unidad.getPosition().getX() - misil.getPosition().getX();
+                float dy = unidad.getPosition().getY() - misil.getPosition().getY();
+                float distancia = (dx * dx) + (dy * dy);
+
+                if (distancia <= rangoCuadrado) {
+                    unidad.applyDamage(DANO_MISIL);
+                    impactadas.add(UnitMapper.toSelectionDTO(unidad));
+                }
+            }
+
+            if (!impactadas.isEmpty()) {
+                MisilImpactoDTO impacto = new MisilImpactoDTO(
+                        misil.getId(),
+                        misil.getAttackerUnitId(),
+                        null,
+                        impactadas
+                );
+                gameWebSocketHandler.broadcastToAll(CommunicationEvents.ServerToClientEvents.MISIL_IMPACTADO, impacto);
+                gameState.removeMissileProjectile(misil.getId());
+                continue;
+            }
+
+            // Controlamos tiempo de misil
+            if (misil.estaExpirado()) {
+                MisilImpactoDTO impactoVacio = new MisilImpactoDTO(
+                        misil.getId(),
+                        misil.getAttackerUnitId(),
+                        null,
+                        new ArrayList<>()
+                );
+                gameWebSocketHandler.broadcastToAll(CommunicationEvents.ServerToClientEvents.MISIL_IMPACTADO, impactoVacio);
+                gameState.removeMissileProjectile(misil.getId());
+            }
+        }
+    }
+
+    private boolean estaFueraDeMapa(Position posicion) {
+        if (posicion == null) {
+            return true;
+        }
+
+        return posicion.getX() < MIN_X
+                || posicion.getX() > MAX_X
+                || posicion.getY() < MIN_Y
+                || posicion.getY() > MAX_Y;
     }
 
     // --------------- Creacion de entidades para el juego ---------------

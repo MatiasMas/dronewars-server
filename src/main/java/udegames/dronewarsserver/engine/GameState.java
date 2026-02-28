@@ -2,6 +2,7 @@ package udegames.dronewarsserver.engine;
 
 import udegames.dronewarsserver.domain.model.Player;
 import udegames.dronewarsserver.domain.model.BombProjectile;
+import udegames.dronewarsserver.domain.model.MissileProjectile;
 import udegames.dronewarsserver.domain.model.Position;
 import udegames.dronewarsserver.domain.model.Unit;
 import udegames.dronewarsserver.engine.movement.UnitMovement;
@@ -14,6 +15,7 @@ public class GameState {
     private final Map<String, Player> players;
     private final Map<String, Unit> units;
     private final Map<String, BombProjectile> bombProjectiles;
+    private final Map<String, MissileProjectile> missileProjectiles;
     private final Map<String, UnitMovement> unitMovements;
     private final long createdAt;
 
@@ -22,6 +24,7 @@ public class GameState {
         this.players = new ConcurrentHashMap<>();
         this.units = new ConcurrentHashMap<>();
         this.bombProjectiles = new ConcurrentHashMap<>();
+        this.missileProjectiles = new ConcurrentHashMap<>();
         this.unitMovements = new ConcurrentHashMap<>();
         this.createdAt = System.currentTimeMillis();
     }
@@ -99,6 +102,18 @@ public class GameState {
 
     public List<BombProjectile> getBombProjectiles() {
         return new ArrayList<>(bombProjectiles.values());
+    }
+
+    public void addMissileProjectile(MissileProjectile missileProjectile) {
+        missileProjectiles.put(missileProjectile.getId(), missileProjectile);
+    }
+
+    public void removeMissileProjectile(String misilId) {
+        missileProjectiles.remove(misilId);
+    }
+
+    public List<MissileProjectile> getMissileProjectiles() {
+        return new ArrayList<>(missileProjectiles.values());
     }
 
     // ------------ Gestion de movimiento ------------
