@@ -1,6 +1,7 @@
 package udegames.dronewarsserver.service;
 
 import org.springframework.stereotype.Service;
+import udegames.dronewarsserver.domain.enums.DroneState;
 import udegames.dronewarsserver.domain.model.Drone;
 import udegames.dronewarsserver.domain.model.Position;
 import udegames.dronewarsserver.domain.model.Unit;
@@ -48,7 +49,17 @@ public class BombingService implements IBombingService {
 
         // Debe tener municion.
         Drone dron = (Drone) unidad;
+
+        if(dron.getState() == DroneState.INHABILITADO){
+            return false;
+        }
+
+        if (dron.getCombustible() <= 0f){
+            return false;
+        }
+
         return dron.getAmmo() > 0;
+
     }
 
     @Override

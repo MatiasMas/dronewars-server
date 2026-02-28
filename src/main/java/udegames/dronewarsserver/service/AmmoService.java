@@ -67,12 +67,11 @@ public class AmmoService implements IAmmoService {
             return false;
         }
 
-        // No exceder el maximo permitido.
-        if (dron.getAmmo() >= dron.getMaxAmmo()) {
-            return false;
-        }
+        // Permitimos recarga si falta municion o combustible.
+        boolean faltaMunicion = dron.getAmmo() < dron.getMaxAmmo();
+        boolean faltaCombustible = dron.getCombustible() < dron.getMaxFuel();
 
-        return true;
+        return faltaMunicion || faltaCombustible;
     }
 
     @Override
@@ -85,6 +84,8 @@ public class AmmoService implements IAmmoService {
         Drone dron = (Drone) unidad;
         // Recarga completa.
         dron.reload();
+        dron.refuel();
+        dron.habilitarLuegoRecarga();
         return dron.getAmmo();
     }
 

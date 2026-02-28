@@ -1,6 +1,8 @@
 package udegames.dronewarsserver.service;
 
 import org.springframework.stereotype.Service;
+import udegames.dronewarsserver.domain.enums.DroneState;
+import udegames.dronewarsserver.domain.model.Drone;
 import udegames.dronewarsserver.domain.model.Position;
 import udegames.dronewarsserver.domain.model.Unit;
 import udegames.dronewarsserver.engine.GameState;
@@ -48,6 +50,15 @@ public class MovementService implements IMovementService {
 
         if (target == null) {
             return false;
+        }
+
+        if(unit instanceof Drone dron){
+            if(dron.getState() == DroneState.INHABILITADO){
+                return false;
+            }
+            if (dron.getCombustible() <= 0f){
+                return false;
+            }
         }
 
         return isWithinBounds(target) && isWithinHeight(target, playerId);

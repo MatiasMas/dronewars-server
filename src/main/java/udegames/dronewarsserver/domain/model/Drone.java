@@ -27,9 +27,11 @@ public abstract class Drone extends Unit {
         return carrierId;
     }
 
-    public float getFuel() {
+    public float getCombustible() {
         return fuel;
     }
+
+    public float getMaxFuel() { return maxFuel; }
 
     public int getAmmo() {
         return ammo;
@@ -69,5 +71,30 @@ public abstract class Drone extends Unit {
 
         ammo -= cantidad;
         return true;
+    }
+
+    public boolean consumirCombustible(int cantidad) {
+        if (cantidad <= 0f) {
+            return false;
+        }
+        if (fuel <= 0f){
+            return false;
+        }
+
+        fuel -= cantidad;
+        if (fuel < 0f) {
+            fuel = 0f;
+        }
+        return fuel > 0f;
+    }
+
+    public void inhabilitarPorCombustible(){
+        this.state = DroneState.INHABILITADO;
+    }
+
+    public void habilitarLuegoRecarga(){
+        if (this.state == DroneState.INHABILITADO) {
+            this.state = DroneState.DEPLOYED;
+        }
     }
 }

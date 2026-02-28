@@ -1,5 +1,6 @@
 package udegames.dronewarsserver.engine;
 
+import udegames.dronewarsserver.domain.model.Drone;
 import udegames.dronewarsserver.domain.model.Position;
 import udegames.dronewarsserver.domain.model.Unit;
 import udegames.dronewarsserver.engine.movement.UnitMovement;
@@ -8,6 +9,8 @@ public class UnitMovementSystem {
     private final GameState gameState;
     private final float positionEpsilon;
     private final float tickIntervalSeconds;
+    private static final float CONSUMO_COMBUSTIBLE_POR_UNIDAD = 0.01f;
+    private static final float ALTURA_FORZADA_COMBUSTIBLE = 0f;
 
     public UnitMovementSystem(GameState gameState, long tickIntervalMs, float positionEpsilon) {
         this.gameState = gameState;
@@ -69,6 +72,29 @@ public class UnitMovementSystem {
             );
             unit.setPosition(newPosition);
             moved = true;
+
+            if(unit instanceof Drone drone){
+                float movX = newPosition.getX() - current.getX();
+                float movY = newPosition.getY() - current.getY();
+                float movZ = newPosition.getZ() - current.getZ();
+                float distancia = (float) Math.sqrt(movX * movX + movY * movY + movZ * movZ);
+                boolean quedaCombustible = drone.consumirCombustible((int) (distancia + CONSUMO_COMBUSTIBLE_POR_UNIDAD));
+
+                if(!quedaCombustible){
+                    drone.inhabilitarPorCombustible();
+                    gameState.clearUnitMovement(unitId);
+
+                    // Forzamos el descenso cuando se queda sin combustible.
+                    Position posicionActual = unit.getPosition();
+                    Position destinoForzado = new Position(posicionActual.getX(), posicionActual.getY(), ALTURA_FORZADA_COMBUSTIBLE);
+
+                    if (Math.abs(posicionActual.getZ() - ALTURA_FORZADA_COMBUSTIBLE) > positionEpsilon) {
+                        gameState.setUnitMovement(unitId, destinoForzado, 20f);
+                    } else {
+                        unit.setPosition(destinoForzado);
+                    }
+                }
+            }
         }
 
         return moved;
