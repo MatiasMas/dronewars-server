@@ -9,9 +9,16 @@ import udegames.dronewarsserver.websocket.GameWebSocketHandler;
 @Configuration
 @EnableWebSocket
 public class WebSocketConfig implements WebSocketConfigurer {
+    private final GameWebSocketHandler gameWebSocketHandler;
+
+    public WebSocketConfig(GameWebSocketHandler gameWebSocketHandler) {
+        this.gameWebSocketHandler = gameWebSocketHandler;
+    }
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(new GameWebSocketHandler(), "/game").setAllowedOrigins("*");
+        registry
+                .addHandler(gameWebSocketHandler, "/game")
+                .setAllowedOrigins("*");
     }
 }
