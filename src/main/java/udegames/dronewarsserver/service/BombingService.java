@@ -108,6 +108,10 @@ public class BombingService implements IBombingService {
                 continue;
             }
 
+            if (!(unidadObjetivo instanceof Drone)) {
+                continue;
+            }
+
             // Si esta en rango, el dron enemigo queda con HP en 0.
             unidadObjetivo.applyDamage(unidadObjetivo.getHealth());
             unidadesImpactadas.add(UnitMapper.toSelectionDTO(unidadObjetivo));

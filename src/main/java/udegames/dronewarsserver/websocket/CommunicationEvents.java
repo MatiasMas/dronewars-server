@@ -38,6 +38,7 @@ public class CommunicationEvents {
         public static final String MOVE_ACCEPTED = "MOVE_ACCEPTED";
         public static final String GAME_STATE_UPDATE = "GAME_STATE_UPDATE";
         public static final String MUNICION_RECARGADA = "MUNICION_RECARGADA";
+        public static final String GAME_ENDED = "GAME_ENDED";
 
         // Futuro
         // public static final String GAME_STATE_UPDATED = "GAME_STATE_UPDATED";

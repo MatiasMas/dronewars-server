@@ -18,6 +18,8 @@ import udegames.dronewarsserver.dto.UnitSelectionDTO;
 import udegames.dronewarsserver.mapper.UnitMapper;
 import udegames.dronewarsserver.websocket.CommunicationEvents;
 import udegames.dronewarsserver.websocket.GameWebSocketHandler;
+import udegames.dronewarsserver.domain.model.DroneCarrier;
+import udegames.dronewarsserver.dto.GameEndedDTO;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,6 +53,15 @@ public class GameEngine {
     private static final float MAX_X = 200f;
     private static final float MIN_Y = 0f;
     private static final float MAX_Y = 200f;
+    // Reglas de fin de juego
+    private static final long TIEMPO_ESPERA_EMPATE_MS = 120_000L;
+    private static final String FIN_A = "ALL_UNITS_DESTROYED";
+    private static final String FIN_B = "CARRIER_DESTROYED_AND_NO_RESOURCES";
+    private static final String FIN_C = "CARRIER_DESTROYED_TIMEOUT_DRAW";
+
+    private volatile boolean gameFinished = false;
+    private Long tsCarrierDestroyedP1 = null;
+    private Long tsCarrierDestroyedP2 = null;
 
     public GameEngine(GameState gameState, GameStateSyncService gameStateSyncService, GameWebSocketHandler gameWebSocketHandler) {
         this.gameState = gameState;
@@ -124,6 +135,8 @@ public class GameEngine {
         if (moved) {
             gameStateSyncService.broadcastGameState();
         }
+
+        evaluarFinDePartida();
     }
 
     /*
@@ -366,4 +379,121 @@ public class GameEngine {
 
         return MUNICION_MAX_JUGADOR_1;
     }
+
+    private void evaluarFinDePartida() {
+        if (gameFinished) {
+            return;
+        }
+
+        EstadoEquipo e1 = calcularEstadoEquipo(ID_JUGADOR_1);
+        EstadoEquipo e2 = calcularEstadoEquipo(ID_JUGADOR_2);
+
+        // RF25.a
+        if (!e1.tieneUnidadesVivas) {
+            emitirFinDePartida(ID_JUGADOR_2, false, FIN_A);
+            return;
+        }
+        if (!e2.tieneUnidadesVivas) {
+            emitirFinDePartida(ID_JUGADOR_1, false, FIN_A);
+            return;
+        }
+        // RF25.b
+        if (e1.carrierDestruido && e1.todasLasUnidadesRestantesSinRecursos()) {
+            emitirFinDePartida(ID_JUGADOR_2, false, FIN_B);
+            return;
+        }
+        if (e2.carrierDestruido && e2.todasLasUnidadesRestantesSinRecursos()) {
+            emitirFinDePartida(ID_JUGADOR_1, false, FIN_B);
+            return;
+        }
+
+        // RF25.c
+        long ahora = System.currentTimeMillis();
+
+        if (e1.carrierDestruido && tsCarrierDestroyedP1 == null) {
+            tsCarrierDestroyedP1 = ahora;
+        }
+
+        if (e2.carrierDestruido && tsCarrierDestroyedP2 == null) {
+            tsCarrierDestroyedP2 = ahora;
+        }
+
+        if (tsCarrierDestroyedP1 != null && !e2.carrierDestruido
+                && (ahora - tsCarrierDestroyedP1) >= TIEMPO_ESPERA_EMPATE_MS) {
+            emitirFinDePartida(null, true, FIN_C);
+            return;
+        }
+
+        if (tsCarrierDestroyedP2 != null && !e1.carrierDestruido
+                && (ahora - tsCarrierDestroyedP2) >= TIEMPO_ESPERA_EMPATE_MS) {
+            emitirFinDePartida(null, true, FIN_C);
+        }
+    }
+
+    private EstadoEquipo calcularEstadoEquipo(String playerId) {
+        int carriersTotales = 0;
+        int carriersVivos = 0;
+        int dronesVivos = 0;
+        int dronesVivosSinRecursos = 0;
+        int unidadesVivas = 0;
+
+        for (Unit unidad : gameState.getUnits()) {
+            if (!playerId.equals(unidad.getOwnerId())) {
+                continue;
+            }
+
+            if (unidad instanceof DroneCarrier) {
+                carriersTotales++;
+                if (!unidad.isDestroyed()) {
+                    carriersVivos++;
+                }
+            }
+
+            if (unidad.isDestroyed()) {
+                continue;
+            }
+            unidadesVivas++;
+
+            if (unidad instanceof Drone dron) {
+                dronesVivos++;
+                if (dron.getCombustible() <= 0f || dron.getAmmo() <= 0) {
+                    dronesVivosSinRecursos++;
+                }
+            }
+        }
+
+        boolean carrierDestruido = carriersTotales > 0 && carriersVivos == 0;
+        return new EstadoEquipo(unidadesVivas > 0, carrierDestruido, dronesVivos, dronesVivosSinRecursos);
+    }
+
+    private void emitirFinDePartida(String ganador, boolean empate, String razon) {
+        if (gameFinished) {
+            return;
+        }
+
+        gameFinished = true;
+        GameEndedDTO payload = new GameEndedDTO(ganador, empate, razon);
+        gameWebSocketHandler.broadcastToAll(CommunicationEvents.ServerToClientEvents.GAME_ENDED, payload);
+        logger.info("Partida finalizada. draw={}, winner={}, reason={}", empate, ganador, razon);
+        stop();
+    }
+
+    private static class EstadoEquipo {
+        final boolean tieneUnidadesVivas;
+        final boolean carrierDestruido;
+        final int dronesVivos;
+        final int dronesVivosSinRecursos;
+
+        EstadoEquipo(boolean tieneUnidadesVivas, boolean carrierDestruido, int dronesVivos, int dronesVivosSinRecursos) {
+            this.tieneUnidadesVivas = tieneUnidadesVivas;
+            this.carrierDestruido = carrierDestruido;
+            this.dronesVivos = dronesVivos;
+            this.dronesVivosSinRecursos = dronesVivosSinRecursos;
+        }
+
+        boolean todasLasUnidadesRestantesSinRecursos() {
+            return dronesVivos > 0 && dronesVivos == dronesVivosSinRecursos;
+        }
+    }
 }
+

@@ -60,6 +60,25 @@ public class AmmoService implements IAmmoService {
             idPortadronesEfectivo = idPortadronesDron;
         }
 
+        if (unidadPortadrones.isDestroyed()){
+            return false;
+        }
+
+        //Validamos el portadron
+        if (!(unidadPortadrones instanceof DroneCarrier) || !idJugador.equals(unidadPortadrones.getOwnerId())) {
+            String idPortadronesDron = dron.getCarrierId();
+            unidadPortadrones = estadoJuego.getUnitById(idPortadronesDron);
+            if (!(unidadPortadrones instanceof DroneCarrier)|| !idJugador.equals(unidadPortadrones.getOwnerId())) {
+                return false;
+            }
+            idPortadronesEfectivo = idPortadronesDron;
+        }
+
+        // Bloquear recarga si portadrones destruido
+        if (unidadPortadrones.isDestroyed()){
+            return false;
+        }
+
         // Revisamos rango 2D para recarga.
         if (!estaEnRango(dron.getPosition(), unidadPortadrones.getPosition())) {
             Position posicionDron = dron.getPosition();
