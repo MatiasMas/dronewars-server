@@ -9,6 +9,7 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import udegames.dronewarsserver.domain.model.Drone;
 import udegames.dronewarsserver.domain.model.Position;
 import udegames.dronewarsserver.domain.model.Unit;
 import udegames.dronewarsserver.dto.AmmoReloadedDTO;
@@ -342,7 +343,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
-        AmmoReloadedDTO response = new AmmoReloadedDTO(idUnidad, municion);
+        Unit unidad = gameState.getUnitById(idUnidad);
+        float combustible = 0f;
+        if (unidad instanceof Drone dron) {
+            combustible = dron.getCombustible();
+        }
+
+        AmmoReloadedDTO response = new AmmoReloadedDTO(idUnidad, municion, combustible);
         sendResponse(session, CommunicationEvents.ServerToClientEvents.MUNICION_RECARGADA, response);
 
         logger.info("Municion recargada: unitId={}, ammo={}", idUnidad, municion);

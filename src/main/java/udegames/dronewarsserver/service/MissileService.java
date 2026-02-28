@@ -1,6 +1,7 @@
 package udegames.dronewarsserver.service;
 
 import org.springframework.stereotype.Service;
+import udegames.dronewarsserver.domain.enums.DroneState;
 import udegames.dronewarsserver.domain.model.Drone;
 import udegames.dronewarsserver.domain.model.MissileProjectile;
 import udegames.dronewarsserver.domain.model.Position;
@@ -63,9 +64,19 @@ public class MissileService implements IMissileService {
         if (!(unidadObjetivo instanceof Drone)) {
             return false;
         }
+
         if (unidadObjetivo.getOwnerId().equals(idJugador)) {
             return false;
         }
+
+        if(dronAtacante.getState() == DroneState.INHABILITADO) {
+            return false;
+        }
+
+        if(dronAtacante.getCombustible() <= 0f){
+            return false;
+        }
+
         return estadoJuego.isUnitAlive(idObjetivo);
     }
 

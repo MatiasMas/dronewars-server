@@ -7,14 +7,16 @@ public class UnitSelectionDTO {
     private float y;
     private float z;
     private int health;
+    private float combustible;
 
-    public UnitSelectionDTO(String unitId, String type, float x, float y, float z, int health) {
+    public UnitSelectionDTO(String unitId, String type, float x, float y, float z, int health, float combustible) {
         this.unitId = unitId;
         this.type = type;
         this.x = x;
         this.y = y;
         this.z = z;
         this.health = health;
+        this.combustible = combustible;
     }
 
     public String getUnitId() {
@@ -64,4 +66,8 @@ public class UnitSelectionDTO {
     public void setHealth(int health) {
         this.health = health;
     }
+
+    public float getCombustible() {return combustible;}
+
+    public void setCombustible(float combustible) {this.combustible = combustible;}
 }
