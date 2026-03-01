@@ -6,6 +6,7 @@ import udegames.dronewarsserver.domain.model.AerialCarrier;
 import udegames.dronewarsserver.domain.model.AerialDrone;
 import udegames.dronewarsserver.domain.model.BombProjectile;
 import udegames.dronewarsserver.domain.model.Drone;
+import udegames.dronewarsserver.domain.model.DroneCarrier;
 import udegames.dronewarsserver.domain.model.MissileProjectile;
 import udegames.dronewarsserver.domain.model.Player;
 import udegames.dronewarsserver.domain.model.Position;
@@ -242,7 +243,9 @@ public class GameEngine {
                     continue;
                 }
 
-                if (!(unidad instanceof Drone)) {
+                boolean esDron = unidad instanceof Drone;
+                boolean esPortadrones = unidad instanceof DroneCarrier;
+                if (!esDron && !esPortadrones) {
                     continue;
                 }
 
@@ -251,8 +254,16 @@ public class GameEngine {
                 float distancia = (dx * dx) + (dy * dy);
 
                 if (distancia <= rangoCuadrado) {
-                    unidad.applyDamage(DANO_MISIL);
+                    if (esDron) {
+                        unidad.applyDamage(unidad.getHealth());
+                    } else {
+                        unidad.applyDamage(1);
+                    }
                     impactadas.add(UnitMapper.toSelectionDTO(unidad));
+
+                    if (unidad.isDestroyed()) {
+                        gameState.removeUnit(unidad.getId());
+                    }
                 }
             }
 
