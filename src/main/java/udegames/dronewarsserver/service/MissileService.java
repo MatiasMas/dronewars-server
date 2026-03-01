@@ -1,6 +1,7 @@
 package udegames.dronewarsserver.service;
 
 import org.springframework.stereotype.Service;
+import udegames.dronewarsserver.domain.enums.DroneState;
 import udegames.dronewarsserver.domain.model.Drone;
 import udegames.dronewarsserver.domain.model.MissileProjectile;
 import udegames.dronewarsserver.domain.model.Position;
@@ -34,6 +35,7 @@ public class MissileService implements IMissileService {
         if (!ID_JUGADOR_MISIL.equals(idJugador)) {
             return false;
         }
+
         Unit unidadAtacante = estadoJuego.getUnitById(idUnidad);
         if (!(unidadAtacante instanceof Drone)) {
             return false;
@@ -45,27 +47,31 @@ public class MissileService implements IMissileService {
             return false;
         }
         Drone dronAtacante = (Drone) unidadAtacante;
+        if (dronAtacante.getState() == DroneState.INHABILITADO) {
+            return false;
+        }
+        if (dronAtacante.getCombustible() <= 0f) {
+            return false;
+        }
         if (dronAtacante.getAmmo() <= 0) {
             return false;
         }
 
-        // Si hay un punto objetivo, permitimos el disparo.
         if (objetivoX != null && objetivoY != null) {
             return true;
         }
 
-        // Si no hay punto, necesitamos un objetivo valido.
         if (idObjetivo == null || idObjetivo.isBlank()) {
             return false;
         }
-
         Unit unidadObjetivo = estadoJuego.getUnitById(idObjetivo);
-        if (!(unidadObjetivo instanceof Drone)) {
+        if (unidadObjetivo == null) {
             return false;
         }
         if (unidadObjetivo.getOwnerId().equals(idJugador)) {
             return false;
         }
+
         return estadoJuego.isUnitAlive(idObjetivo);
     }
 

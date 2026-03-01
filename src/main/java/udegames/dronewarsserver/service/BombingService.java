@@ -49,7 +49,17 @@ public class BombingService implements IBombingService {
 
         // Debe tener municion.
         Drone dron = (Drone) unidad;
+
+        if(dron.getState() == DroneState.INHABILITADO){
+            return false;
+        }
+
+        if (dron.getCombustible() <= 0f){
+            return false;
+        }
+
         return dron.getAmmo() > 0;
+
     }
 
     @Override
@@ -97,6 +107,10 @@ public class BombingService implements IBombingService {
             }
 
             if (!estaEnRango(posicion, unidadObjetivo.getPosition(), RADIO_EXPLOSION)) {
+                continue;
+            }
+
+            if (!(unidadObjetivo instanceof Drone)) {
                 continue;
             }
 

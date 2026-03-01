@@ -60,6 +60,25 @@ public class AmmoService implements IAmmoService {
             idPortadronesEfectivo = idPortadronesDron;
         }
 
+        if (unidadPortadrones.isDestroyed()){
+            return false;
+        }
+
+        //Validamos el portadron
+        if (!(unidadPortadrones instanceof DroneCarrier) || !idJugador.equals(unidadPortadrones.getOwnerId())) {
+            String idPortadronesDron = dron.getCarrierId();
+            unidadPortadrones = estadoJuego.getUnitById(idPortadronesDron);
+            if (!(unidadPortadrones instanceof DroneCarrier)|| !idJugador.equals(unidadPortadrones.getOwnerId())) {
+                return false;
+            }
+            idPortadronesEfectivo = idPortadronesDron;
+        }
+
+        // Bloquear recarga si portadrones destruido
+        if (unidadPortadrones.isDestroyed()){
+            return false;
+        }
+
         // Revisamos rango 2D para recarga.
         if (!estaEnRango(dron.getPosition(), unidadPortadrones.getPosition())) {
             Position posicionDron = dron.getPosition();
@@ -67,12 +86,11 @@ public class AmmoService implements IAmmoService {
             return false;
         }
 
-        // No exceder el maximo permitido.
-        if (dron.getAmmo() >= dron.getMaxAmmo()) {
-            return false;
-        }
+        // Permitimos recarga si falta municion o combustible.
+        boolean faltaMunicion = dron.getAmmo() < dron.getMaxAmmo();
+        boolean faltaCombustible = dron.getCombustible() < dron.getMaxFuel();
 
-        return true;
+        return faltaMunicion || faltaCombustible;
     }
 
     @Override
@@ -85,6 +103,8 @@ public class AmmoService implements IAmmoService {
         Drone dron = (Drone) unidad;
         // Recarga completa.
         dron.reload();
+        dron.refuel();
+        dron.habilitarLuegoRecarga();
         return dron.getAmmo();
     }
 
