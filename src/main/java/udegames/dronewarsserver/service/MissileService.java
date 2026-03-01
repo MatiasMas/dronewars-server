@@ -18,8 +18,9 @@ import java.util.UUID;
 @Service
 public class MissileService implements IMissileService {
     private static final String ID_JUGADOR_MISIL = "player_2";
-    private static final float VELOCIDAD_MISIL = 20f;
-    private static final float TIEMPO_MAX_MISIL = 10f;
+    private static final float VELOCIDAD_MISIL = 450f;
+    private static final float TIEMPO_MAX_MISIL = 30f;
+    private static final float DISTANCIA_MAX_MISIL = 1500f;
 
     private final GameState estadoJuego;
 
@@ -119,7 +120,8 @@ public class MissileService implements IMissileService {
                 posicionInicial,
                 destinoFijo,
                 VELOCIDAD_MISIL,
-                TIEMPO_MAX_MISIL
+                TIEMPO_MAX_MISIL,
+                DISTANCIA_MAX_MISIL
         );
         estadoJuego.addMissileProjectile(misil);
 

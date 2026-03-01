@@ -13,8 +13,10 @@ public class MissileProjectile {
     private float tiempoActual;
     private final float dirX;
     private final float dirY;
+    private final float distanciaMaxima;
+    private float distanciaRecorrida;
 
-    public MissileProjectile(String id, String attackerUnitId, String ownerId, String targetUnitId, Position position, Position destinoFijo, float speed, float tiempoMaximo) {
+    public MissileProjectile(String id, String attackerUnitId, String ownerId, String targetUnitId, Position position, Position destinoFijo, float speed, float tiempoMaximo, float distanciaMaxima) {
         this.id = id;
         this.attackerUnitId = attackerUnitId;
         this.ownerId = ownerId;
@@ -24,6 +26,8 @@ public class MissileProjectile {
         this.speed = speed;
         this.tiempoMaximo = tiempoMaximo;
         this.tiempoActual = 0f;
+        this.distanciaMaxima = distanciaMaxima;
+        this.distanciaRecorrida = 0f;
         float dx = destinoFijo.getX() - position.getX();
         float dy = destinoFijo.getY() - position.getY();
         float distancia = (float) Math.sqrt((dx * dx) + (dy * dy));
@@ -74,9 +78,14 @@ public class MissileProjectile {
         float paso = speed * deltaSeconds;
         position.setX(position.getX() + (dirX * paso));
         position.setY(position.getY() + (dirY * paso));
+        distanciaRecorrida += paso;
     }
 
     public boolean estaExpirado() {
         return tiempoActual >= tiempoMaximo;
+    }
+
+    public boolean excedioDistancia() {
+        return distanciaRecorrida >= distanciaMaxima;
     }
 }

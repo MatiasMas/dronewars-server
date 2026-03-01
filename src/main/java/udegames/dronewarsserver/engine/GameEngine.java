@@ -51,7 +51,7 @@ public class GameEngine {
     private static final int MUNICION_MAX_JUGADOR_1 = 1;
     private static final int MUNICION_MAX_JUGADOR_2 = 2;
     private static final int DANO_MISIL = 1;
-    private static final float RANGO_EXPLOSION_MISIL = 8f;
+    private static final float RANGO_EXPLOSION_MISIL = 16f;
     private static final float MIN_X = 0f;
     private static final float MAX_X = 6700f;
     private static final float MIN_Y = 0f;
@@ -290,6 +290,19 @@ public class GameEngine {
                         impactadas
                 );
                 gameWebSocketHandler.broadcastToAll(CommunicationEvents.ServerToClientEvents.MISIL_IMPACTADO, impacto);
+                gameState.removeMissileProjectile(misil.getId());
+                continue;
+            }
+
+            // Controlamos distancia maxima del misil
+            if (misil.excedioDistancia()) {
+                MisilImpactoDTO impactoVacio = new MisilImpactoDTO(
+                        misil.getId(),
+                        misil.getAttackerUnitId(),
+                        null,
+                        new ArrayList<>()
+                );
+                gameWebSocketHandler.broadcastToAll(CommunicationEvents.ServerToClientEvents.MISIL_IMPACTADO, impactoVacio);
                 gameState.removeMissileProjectile(misil.getId());
                 continue;
             }

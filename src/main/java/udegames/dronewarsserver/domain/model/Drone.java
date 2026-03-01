@@ -18,8 +18,8 @@ public abstract class Drone extends Unit {
         this.maxFuel = maxFuel;
         this.fuel = maxFuel;
         this.maxAmmo = maxAmmo;
-        // Al inicio todos los drones comienzan sin municion.
-        this.ammo = 0;
+        // Al inicio todos los drones comienzan con municion maxima.
+        this.ammo = maxAmmo;
         this.state = DroneState.DOCKED;
     }
 
