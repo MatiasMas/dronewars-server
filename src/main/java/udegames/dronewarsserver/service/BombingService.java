@@ -1,8 +1,8 @@
 package udegames.dronewarsserver.service;
 
 import org.springframework.stereotype.Service;
-import udegames.dronewarsserver.domain.enums.DroneState;
 import udegames.dronewarsserver.domain.model.Drone;
+import udegames.dronewarsserver.domain.model.DroneCarrier;
 import udegames.dronewarsserver.domain.model.Position;
 import udegames.dronewarsserver.domain.model.Unit;
 import udegames.dronewarsserver.dto.BombExplodedDTO;
@@ -100,7 +100,9 @@ public class BombingService implements IBombingService {
                 continue;
             }
 
-            if (!(unidadObjetivo instanceof Drone)) {
+            boolean esDron = unidadObjetivo instanceof Drone;
+            boolean esPortadrones = unidadObjetivo instanceof DroneCarrier;
+            if (!esDron && !esPortadrones) {
                 continue;
             }
 
@@ -112,9 +114,18 @@ public class BombingService implements IBombingService {
                 continue;
             }
 
-            // Si esta en rango, el dron enemigo queda con HP en 0.
-            unidadObjetivo.applyDamage(unidadObjetivo.getHealth());
+            // Si esta en rango, los drones se destruyen y los portadrones pierden 1 de vida.
+            if (esDron) {
+                unidadObjetivo.applyDamage(unidadObjetivo.getHealth());
+            } else {
+                unidadObjetivo.applyDamage(1);
+            }
             unidadesImpactadas.add(UnitMapper.toSelectionDTO(unidadObjetivo));
+
+            // Si quedo destruida, la sacamos del mapa.
+            if (unidadObjetivo.isDestroyed()) {
+                estadoJuego.removeUnit(unidadObjetivo.getId());
+            }
         }
 
         BombExplodedDTO bombaExplotada = new BombExplodedDTO(
