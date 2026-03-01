@@ -19,7 +19,7 @@ import java.util.UUID;
 @Service
 public class BombingService implements IBombingService {
     // Valores simples para explosiones (ajustables).
-    private static final float RADIO_EXPLOSION = 8f;
+    private static final float RADIO_EXPLOSION = 85f;
 
     private final GameState estadoJuego;
 
