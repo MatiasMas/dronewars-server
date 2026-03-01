@@ -19,6 +19,8 @@ import udegames.dronewarsserver.mapper.UnitMapper;
 import udegames.dronewarsserver.websocket.CommunicationEvents;
 import udegames.dronewarsserver.websocket.GameWebSocketHandler;
 import udegames.dronewarsserver.domain.model.DroneCarrier;
+import udegames.dronewarsserver.domain.model.NavalCarrier;
+import udegames.dronewarsserver.domain.model.NavalDrone;
 import udegames.dronewarsserver.dto.GameEndedDTO;
 
 import java.util.ArrayList;
@@ -50,9 +52,9 @@ public class GameEngine {
     private static final int DANO_MISIL = 1;
     private static final float RANGO_EXPLOSION_MISIL = 8f;
     private static final float MIN_X = 0f;
-    private static final float MAX_X = 200f;
+    private static final float MAX_X = 6700f;
     private static final float MIN_Y = 0f;
-    private static final float MAX_Y = 200f;
+    private static final float MAX_Y = 2500f;
     // Reglas de fin de juego
     private static final long TIEMPO_ESPERA_EMPATE_MS = 120_000L;
     private static final String FIN_A = "ALL_UNITS_DESTROYED";
@@ -333,35 +335,70 @@ public class GameEngine {
         Player player1 = players.get(0);
         Player player2 = players.get(1);
 
-        // Hardcodeado por ahora para tener 2 drones + 1 portadrones
-        createPlayerUnits(player1, 10f, 10f);
-        createPlayerUnits(player2, 100f, 100f);
+        // Player 1: drones aéreos, lado izquierdo del mapa. 12 drones + 1 portadrones aéreo.
+        createPlayer1AerialUnits(player1);
+        // Player 2: drones navales, lado derecho del mapa. 6 drones + 1 portadrones naval.
+        createPlayer2NavalUnits(player2);
 
         logger.debug("Unidades creadas para jugadores: {}", gameState.getPlayers());
     }
 
-    private void createPlayerUnits(Player jugador, float inicioX, float inicioY) {
-        int municionMaxima = obtenerMaxMunicionParaJugador(jugador);
-        // Portadrones primero, asi los drones conocen el id real.
-        Position posicionPortadronesAereo = new Position(inicioX - 5f, inicioY - 5f, 5f);
-        AerialCarrier portadronesAereo = new AerialCarrier(12, jugador.getId(), 6, posicionPortadronesAereo);
+    /** Lado izquierdo del mapa: X bajos. 1 AerialCarrier + 12 AerialDrone, agrupados pero visibles por separado. */
+    private void createPlayer1AerialUnits(Player player1) {
+        int municionMaxima = MUNICION_MAX_JUGADOR_1;
+        float baseX = 1200f;
+        float baseY = (MIN_Y + MAX_Y) * 0.5f;
+        float z = 5f;
+        float separacion = 80f;
 
-        gameState.addUnit(portadronesAereo);
-        logger.debug("AerialCarrier creado: {} en ({}, {}, {})", portadronesAereo.getId(), posicionPortadronesAereo.getX(), posicionPortadronesAereo.getY(), posicionPortadronesAereo.getZ());
+        Position posCarrier = new Position(baseX - separacion, baseY - separacion, z);
+        AerialCarrier carrier = new AerialCarrier(12, player1.getId(), 6, posCarrier);
+        gameState.addUnit(carrier);
+        logger.debug("AerialCarrier creado: {} en ({}, {}, {})", carrier.getId(), posCarrier.getX(), posCarrier.getY(), posCarrier.getZ());
 
-        String idPortadronesReal = portadronesAereo.getId();
-        // Drones aereos
-        Position posicionDronAereo1 = new Position(inicioX, inicioY, 5f);
-        AerialDrone dronAereo1 = new AerialDrone(idPortadronesReal, 100f, municionMaxima, jugador.getId(), 1, posicionDronAereo1);
+        String carrierId = carrier.getId();
+        // 12 drones en formación 4 filas x 3 columnas, separados para verse por separado
+        int cols = 3;
+        int rows = 4;
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+                float dx = col * separacion;
+                float dy = row * separacion;
+                Position pos = new Position(baseX + dx, baseY + dy, z);
+                AerialDrone drone = new AerialDrone(carrierId, 100f, municionMaxima, player1.getId(), 1, pos);
+                gameState.addUnit(drone);
+                logger.debug("AerialDrone creado: {} en ({}, {}, {})", drone.getId(), pos.getX(), pos.getY(), pos.getZ());
+            }
+        }
+    }
 
-        gameState.addUnit(dronAereo1);
-        logger.debug("AerialDrone creado: {} en ({}, {}, {})", dronAereo1.getId(), posicionDronAereo1.getX(), posicionDronAereo1.getY(), posicionDronAereo1.getZ());
+    /** Lado derecho del mapa: X altos. 1 NavalCarrier + 6 NavalDrone, agrupados pero visibles por separado. */
+    private void createPlayer2NavalUnits(Player player2) {
+        int municionMaxima = MUNICION_MAX_JUGADOR_2;
+        float baseX = MAX_X - 1200f;
+        float baseY = (MIN_Y + MAX_Y) * 0.5f;
+        float z = 5f;
+        float separacion = 80f;
 
-        Position posicionDronAereo2 = new Position(inicioX + 5f, inicioY + 5f, 5f);
-        AerialDrone dronAereo2 = new AerialDrone(idPortadronesReal, 100f, municionMaxima, jugador.getId(), 1, posicionDronAereo2);
+        Position posCarrier = new Position(baseX + separacion, baseY - separacion, z);
+        NavalCarrier carrier = new NavalCarrier(6, player2.getId(), 6, posCarrier);
+        gameState.addUnit(carrier);
+        logger.debug("NavalCarrier creado: {} en ({}, {}, {})", carrier.getId(), posCarrier.getX(), posCarrier.getY(), posCarrier.getZ());
 
-        gameState.addUnit(dronAereo2);
-        logger.debug("AerialDrone creado: {} en ({}, {}, {})", dronAereo2.getId(), posicionDronAereo2.getX(), posicionDronAereo2.getY(), posicionDronAereo2.getZ());
+        String carrierId = carrier.getId();
+        // 6 drones en formación 2 filas x 3 columnas
+        int cols = 3;
+        int rows = 2;
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+                float dx = -col * separacion;
+                float dy = row * separacion;
+                Position pos = new Position(baseX + dx, baseY + dy, z);
+                NavalDrone drone = new NavalDrone(carrierId, 100f, municionMaxima, player2.getId(), 1, pos);
+                gameState.addUnit(drone);
+                logger.debug("NavalDrone creado: {} en ({}, {}, {})", drone.getId(), pos.getX(), pos.getY(), pos.getZ());
+            }
+        }
     }
 
     private int obtenerMaxMunicionParaJugador(Player jugador) {

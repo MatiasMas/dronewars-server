@@ -9,19 +9,19 @@ import udegames.dronewarsserver.engine.GameState;
 
 @Service
 public class MovementService implements IMovementService {
-    // Limites del mapa en X/Y
+    // Limites del mapa en X/Y (mapa grande; el viewport del cliente muestra solo una parte)
     private static final float MIN_X = 0f;
-    private static final float MAX_X = 200f;
+    private static final float MAX_X = 6700f;
     private static final float MIN_Y = 0f;
-    private static final float MAX_Y = 200f;
+    private static final float MAX_Y = 2500f;
 
     // Limites de altura (Z). BASE_MAX_Z es el tope base y el bonus aplica solo a player_1.
     private static final float MIN_Z = 0f;
     private static final float BASE_MAX_Z = 10f;
     private static final float PLAYER_HEIGHT_BONUS_FACTOR = 1.005f;
 
-    // Velocidad de movimiento en unidades por segundo (se usa por el motor).
-    private static final float DEFAULT_MOVE_SPEED_UNITS_PER_SEC = 20f;
+    // Velocidad de movimiento en unidades por segundo (se usa por el motor). Aumentada para mapa grande.
+    private static final float DEFAULT_MOVE_SPEED_UNITS_PER_SEC = 400f;
 
     private final GameState gameState;
 
