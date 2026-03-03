@@ -10,19 +10,15 @@ import udegames.dronewarsserver.domain.model.DroneCarrier;
 import udegames.dronewarsserver.domain.model.MissileProjectile;
 import udegames.dronewarsserver.domain.model.Player;
 import udegames.dronewarsserver.domain.model.Position;
+import udegames.dronewarsserver.dto.*;
 import udegames.dronewarsserver.service.GameStateSyncService;
 import udegames.dronewarsserver.domain.model.Unit;
-import udegames.dronewarsserver.dto.BombExplodedDTO;
-import udegames.dronewarsserver.dto.MisilActualizadoDTO;
-import udegames.dronewarsserver.dto.MisilImpactoDTO;
-import udegames.dronewarsserver.dto.UnitSelectionDTO;
 import udegames.dronewarsserver.mapper.UnitMapper;
 import udegames.dronewarsserver.websocket.CommunicationEvents;
 import udegames.dronewarsserver.websocket.GameWebSocketHandler;
 import udegames.dronewarsserver.domain.model.DroneCarrier;
 import udegames.dronewarsserver.domain.model.NavalCarrier;
 import udegames.dronewarsserver.domain.model.NavalDrone;
-import udegames.dronewarsserver.dto.GameEndedDTO;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,6 +57,10 @@ public class GameEngine {
     private static final String FIN_A = "ALL_UNITS_DESTROYED";
     private static final String FIN_B = "CARRIER_DESTROYED_AND_NO_RESOURCES";
     private static final String FIN_C = "CARRIER_DESTROYED_TIMEOUT_DRAW";
+
+    //Recarga Automatica
+    private static final float RANGO_RECARGA_AUTOMATICA = 120f;
+    private static final int INTERVALO_DE_RECARGAS_TICKS = 10;
 
     private volatile boolean gameFinished = false;
     private Long tsCarrierDestroyedP1 = null;
@@ -131,6 +131,7 @@ public class GameEngine {
 //        logger.debug("[UPDATE] Tic: {}", currentTick);
 
         // Colocar aqui todo lo que sea relacionado con colisiones, posiciones, combustible, etc.
+        actualizarRecargaAutomatica();
         updateBombProjectiles();
         updateMissileProjectiles();
 
@@ -537,6 +538,62 @@ public class GameEngine {
         gameWebSocketHandler.broadcastToAll(CommunicationEvents.ServerToClientEvents.GAME_ENDED, payload);
         logger.info("Partida finalizada. draw={}, winner={}, reason={}", empate, ganador, razon);
         stop();
+    }
+
+    private void actualizarRecargaAutomatica(){
+        if(currentTick % INTERVALO_DE_RECARGAS_TICKS != 0){
+            return;
+        }
+
+        for (Unit unidad : gameState.getUnits()) {
+            if(!(unidad instanceof Drone dron)){
+                continue;
+            }
+
+            if(dron.isDestroyed()){
+                continue;
+            }
+
+            boolean faltaMunicion = dron.getAmmo() < dron.getMaxAmmo();
+            boolean faltaCombustible = dron.getCombustible() < dron.getMaxFuel();
+
+            if(!faltaMunicion && !faltaCombustible){
+                continue;
+            }
+
+            boolean hayPortadronesCerca = false;
+            for(Unit posibleCarrier : gameState.getUnits()){
+                if(!(posibleCarrier instanceof DroneCarrier)){
+                    continue;
+                }
+                if(!(posibleCarrier.getOwnerId().equals(unidad.getOwnerId()))){
+                    continue;
+                }
+                if(posibleCarrier.isDestroyed()){
+                    continue;
+                }
+
+                float dx = dron.getPosition().getX() - posibleCarrier.getPosition().getX();
+                float dy = dron.getPosition().getY() - posibleCarrier.getPosition().getY();
+                float distanciaCuadrada = (dx * dx) + (dy * dy);
+                float rangoCuadrado = RANGO_RECARGA_AUTOMATICA * RANGO_RECARGA_AUTOMATICA;
+
+                if(distanciaCuadrada <= rangoCuadrado){
+                    hayPortadronesCerca = true;
+                    break;
+                }
+            }
+            if(!hayPortadronesCerca){
+                continue;
+            }
+            //Recargamos y notificamos client
+            dron.reload();
+            dron.refuel();
+            dron.habilitarLuegoRecarga();
+
+            AmmoReloadedDTO payload = new AmmoReloadedDTO(dron.getId(), dron.getAmmo(), dron.getCombustible());
+            gameWebSocketHandler.broadcastToAll(CommunicationEvents.ServerToClientEvents.MUNICION_RECARGADA, payload);
+        }
     }
 
     private static class EstadoEquipo {
