@@ -128,6 +128,8 @@ public class GameEngine {
 
         currentTick++;
 
+        if (gameState.isPartidaPausada()){ return; }
+
 //        logger.debug("[UPDATE] Tic: {}", currentTick);
 
         // Colocar aqui todo lo que sea relacionado con colisiones, posiciones, combustible, etc.

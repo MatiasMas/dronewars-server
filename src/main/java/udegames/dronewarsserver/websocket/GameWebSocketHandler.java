@@ -124,6 +124,12 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 case CommunicationEvents.ClientToServerEvents.LAUNCH_MISSILE:
                     hanldeDispararMisil(session, root);
                     break;
+                case CommunicationEvents.ClientToServerEvents.SET_GAME_PAUSED:
+                    handleSetGamePaused(session, root);
+                    break;
+                case CommunicationEvents.ServerToClientEvents.SAVE_GAME_RESULT:
+                    handleSaveGame(session);
+                    break;
                 default:
                     sendErrorMessage(session, "Tipo de mensaje desconocido: " + messageType);
             }
@@ -162,6 +168,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             sendErrorMessage(session, "PlayerId invalido");
             return;
         }
+
+        Map<String, Object> payloadPausa = Map.of(
+                "paused", gameState.isPartidaPausada(),
+                "updatedBy", "server",
+                "timestamp", System.currentTimeMillis()
+        );
+        sendResponse(session, CommunicationEvents.ServerToClientEvents.GAME_PAUSE_UPDATED, payloadPausa);
 
         if (!gameState.doesPlayerExist(playerId)) {
             logger.error("El jugador no existe en el juego: {}", playerId);
@@ -257,6 +270,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
+        if (gameState.isPartidaPausada()) {
+            sendErrorMessage(session, "La partida esta pausada");
+            return;
+        }
+
         JsonNode datos = obtenerDatos(root);
         JsonNode unitIdNode = datos.get("unitId");
         JsonNode targetXNode = datos.get("targetX");
@@ -313,6 +331,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
+        if (gameState.isPartidaPausada()) {
+            sendErrorMessage(session, "La partida esta pausada");
+            return;
+        }
+
         // Payload esperado:
         // payload: { unitId: "<id_dron>", carrierId: "<id_portadrones_opcional>" }
         JsonNode datos = obtenerDatos(root);
@@ -363,6 +386,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
+        if (gameState.isPartidaPausada()) {
+            sendErrorMessage(session, "La partida esta pausada");
+            return;
+        }
+
         JsonNode datos = obtenerDatos(root);
         JsonNode nodoIdUnidad = datos.get("unitId");
         if (nodoIdUnidad == null || nodoIdUnidad.isNull()) {
@@ -395,10 +423,15 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         logger.info("Bomba lanzada: unitId={}, bombId={}", idUnidad, bombaLanzada.getBombId());
     }
 
-    private  void hanldeDispararMisil(WebSocketSession session, JsonNode root) throws IOException {
+    private void hanldeDispararMisil(WebSocketSession session, JsonNode root) throws IOException {
         String idJugador = sessionToPlayerId.get(session.getId());
         if(idJugador == null) {
             logger.warn("Jugador no registrado en la sesion: {}", session.getId());
+            return;
+        }
+
+        if (gameState.isPartidaPausada()) {
+            sendErrorMessage(session, "La partida esta pausada");
             return;
         }
 
@@ -541,5 +574,37 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         return root;
     }
 
+    private void handleSetGamePaused(WebSocketSession session, JsonNode root) throws IOException {
+        String playerId = sessionToPlayerId.get(session.getId());
+        if(playerId == null){
+            sendErrorMessage(session, "PlayerId invalido");
+            return;
+        }
+
+        JsonNode datos = obtenerDatos(root);
+        JsonNode pausedNode = datos.get("paused");
+        if (pausedNode == null){
+            sendErrorMessage(session, "Pausa invalida");
+            return;
+        }
+
+        boolean pausada = pausedNode.asBoolean();
+        gameState.setPartidaPausada(pausada);
+
+        Map<String, Object> payload = Map.of(
+                "pausada", pausada,
+                "updatedBy", playerId,
+                "timestamp", System.currentTimeMillis()
+        );
+        broadcastToAll(CommunicationEvents.ServerToClientEvents.GAME_PAUSE_UPDATED, payload);
+    }
+
+    private void handleSaveGame(WebSocketSession session) throws IOException {
+        Map<String, Object> payload = Map.of(
+                "ok", false,
+                "message", "Guardar partida no se implemento todavia"
+        );
+        sendResponse(session, CommunicationEvents.ServerToClientEvents.SAVE_GAME_RESULT, payload);
+    }
 }
 
