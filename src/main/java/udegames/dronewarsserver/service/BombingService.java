@@ -65,7 +65,6 @@ public class BombingService implements IBombingService {
 
     @Override
     public BombAttackResult launchBomb(String idUnidad) {
-        // Buscar la unidad y validar que sea dron.
         Unit unidad = estadoJuego.getUnitById(idUnidad);
         if (!(unidad instanceof Drone)) {
             return null;
@@ -108,10 +107,6 @@ public class BombingService implements IBombingService {
             }
 
             if (!estaEnRango(posicion, unidadObjetivo.getPosition(), RADIO_EXPLOSION)) {
-                continue;
-            }
-
-            if (!(unidadObjetivo instanceof Drone)) {
                 continue;
             }
 
