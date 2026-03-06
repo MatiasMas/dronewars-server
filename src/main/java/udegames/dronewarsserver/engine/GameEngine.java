@@ -278,7 +278,11 @@ public class GameEngine {
                     impactadas.add(UnitMapper.toSelectionDTO(unidad));
 
                     if (unidad.isDestroyed()) {
-                        gameState.removeUnit(unidad.getId());
+                        // Removemos drones destruidos, pero mantenemos carriers destruidos en GameState
+                        // para que RF25.b / RF25.c puedan detectarlos.
+                        if (esDron) {
+                            gameState.removeUnit(unidad.getId());
+                        }
                     }
                 }
             }
@@ -469,7 +473,9 @@ public class GameEngine {
             return;
         }
 
-        // RF25.c
+        // RF25.c (ajustada):
+// - Si ambos carriers destruidos => empate inmediato
+// - Si solo uno destruido y pasan 120s sin destruir el otro => gana el que sigue con carrier vivo
         long ahora = System.currentTimeMillis();
 
         if (e1.carrierDestruido && tsCarrierDestroyedP1 == null) {
@@ -480,20 +486,27 @@ public class GameEngine {
             tsCarrierDestroyedP2 = ahora;
         }
 
-        if (tsCarrierDestroyedP1 != null && !e2.carrierDestruido
-                && (ahora - tsCarrierDestroyedP1) >= TIEMPO_ESPERA_EMPATE_MS) {
+// Ambos carriers destruidos => empate
+        if (e1.carrierDestruido && e2.carrierDestruido) {
             emitirFinDePartida(null, true, FIN_C);
             return;
         }
 
+// Solo carrier P1 destruido; si expira espera y P2 sigue vivo => gana P2
+        if (tsCarrierDestroyedP1 != null && !e2.carrierDestruido
+                && (ahora - tsCarrierDestroyedP1) >= TIEMPO_ESPERA_EMPATE_MS) {
+            emitirFinDePartida(ID_JUGADOR_2, false, FIN_C);
+            return;
+        }
+
+// Solo carrier P2 destruido; si expira espera y P1 sigue vivo => gana P1
         if (tsCarrierDestroyedP2 != null && !e1.carrierDestruido
                 && (ahora - tsCarrierDestroyedP2) >= TIEMPO_ESPERA_EMPATE_MS) {
-            emitirFinDePartida(null, true, FIN_C);
+            emitirFinDePartida(ID_JUGADOR_1, false, FIN_C);
         }
     }
 
     private EstadoEquipo calcularEstadoEquipo(String playerId) {
-        int carriersTotales = 0;
         int carriersVivos = 0;
         int dronesVivos = 0;
         int dronesVivosSinRecursos = 0;
@@ -505,7 +518,6 @@ public class GameEngine {
             }
 
             if (unidad instanceof DroneCarrier) {
-                carriersTotales++;
                 if (!unidad.isDestroyed()) {
                     carriersVivos++;
                 }
@@ -524,7 +536,8 @@ public class GameEngine {
             }
         }
 
-        boolean carrierDestruido = carriersTotales > 0 && carriersVivos == 0;
+        // Cada equipo comienza con 1 portadrones. Si no hay ninguno vivo (incluso si fue removido del estado), cuenta como destruido.
+        boolean carrierDestruido = carriersVivos == 0;
         return new EstadoEquipo(unidadesVivas > 0, carrierDestruido, dronesVivos, dronesVivosSinRecursos);
     }
 
