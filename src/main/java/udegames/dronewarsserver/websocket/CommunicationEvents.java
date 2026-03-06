@@ -18,6 +18,14 @@ public class CommunicationEvents {
         public static final String LANZAR_MISSILE = "LANZAR_MISSILE";
         public static final String MOVE_UNIT = "MOVE_UNIT";
         public static final String RELOAD_AMMO = "RELOAD_AMMO";
+
+        // Menu principal
+        public static final String CREATE_NEW_GAME = "CREATE_NEW_GAME";
+        public static final String JOIN_GAME = "JOIN_GAME";
+        public static final String LOAD_SAVED_GAME = "LOAD_SAVED_GAME";
+        public static final String GET_RANKING = "GET_RANKING";
+        public static final String EXIT_GAME = "EXIT_GAME";
+
         public static final String SET_GAME_PAUSED = "SET_GAME_PAUSED";
         public static final String REQUEST_SAVE_GAME = "REQUEST_SAVE_GAME";
         // Futuro
@@ -42,6 +50,13 @@ public class CommunicationEvents {
         public static final String GAME_ENDED = "GAME_ENDED";
         public static final String GAME_PAUSE_UPDATED = "GAME_PAUSE_UPDATED";
         public static final String SAVE_GAME_RESULT = "SAVE_GAME_RESULT";
+
+        // Menu principal
+        public static final String GAME_CREATED = "GAME_CREATED";
+        public static final String GAME_JOINED = "GAME_JOINED";
+        public static final String SAVED_GAME_LOADED = "SAVED_GAME_LOADED";
+        public static final String RANKING_RECEIVED = "RANKING_RECEIVED";
+        public static final String GAME_EXITED = "GAME_EXITED";
 
         // Futuro
         // public static final String GAME_STATE_UPDATED = "GAME_STATE_UPDATED";
