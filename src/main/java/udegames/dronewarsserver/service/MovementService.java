@@ -18,6 +18,7 @@ public class MovementService implements IMovementService {
     // Limites de altura (Z). BASE_MAX_Z es el tope base y el bonus aplica solo a player_1.
     private static final float MIN_Z = 0f;
     private static final float BASE_MAX_Z = 10f;
+    private static final float MISSILE_DRONE_MAX_Z = 8f;
     private static final float PLAYER_HEIGHT_BONUS_FACTOR = 1.005f;
 
     // Velocidad de movimiento en unidades por segundo (se usa por el motor). Aumentada para mapa grande.
@@ -91,6 +92,11 @@ public class MovementService implements IMovementService {
     private float getMaxHeightForPlayer(String playerId) {
         if ("player_1".equals(playerId)) {
             return BASE_MAX_Z * PLAYER_HEIGHT_BONUS_FACTOR;
+        }
+
+        // player_2 (drones de misiles) tiene tope de altura menor.
+        if ("player_2".equals(playerId)) {
+            return MISSILE_DRONE_MAX_Z;
         }
 
         return BASE_MAX_Z;

@@ -128,6 +128,8 @@ public class GameEngine {
 
         currentTick++;
 
+        if (gameState.isPartidaPausada()){ return; }
+
 //        logger.debug("[UPDATE] Tic: {}", currentTick);
 
         // Colocar aqui todo lo que sea relacionado con colisiones, posiciones, combustible, etc.
@@ -283,6 +285,7 @@ public class GameEngine {
                         if (esDron) {
                             gameState.removeUnit(unidad.getId());
                         }
+                        gameState.removeUnit(unidad.getId());
                     }
                 }
             }
@@ -485,24 +488,24 @@ public class GameEngine {
         if (e2.carrierDestruido && tsCarrierDestroyedP2 == null) {
             tsCarrierDestroyedP2 = ahora;
         }
-
-// Ambos carriers destruidos => empate
+    // Ambos carriers destruidos => empate
         if (e1.carrierDestruido && e2.carrierDestruido) {
             emitirFinDePartida(null, true, FIN_C);
             return;
         }
 
-// Solo carrier P1 destruido; si expira espera y P2 sigue vivo => gana P2
+    // Solo carrier P1 destruido; si expira espera y P2 sigue vivo => gana P2
         if (tsCarrierDestroyedP1 != null && !e2.carrierDestruido
                 && (ahora - tsCarrierDestroyedP1) >= TIEMPO_ESPERA_EMPATE_MS) {
             emitirFinDePartida(ID_JUGADOR_2, false, FIN_C);
             return;
         }
 
-// Solo carrier P2 destruido; si expira espera y P1 sigue vivo => gana P1
+        // Solo carrier P2 destruido; si expira espera y P1 sigue vivo => gana P1
         if (tsCarrierDestroyedP2 != null && !e1.carrierDestruido
                 && (ahora - tsCarrierDestroyedP2) >= TIEMPO_ESPERA_EMPATE_MS) {
             emitirFinDePartida(ID_JUGADOR_1, false, FIN_C);
+            emitirFinDePartida(null, true, FIN_C);
         }
     }
 
