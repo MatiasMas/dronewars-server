@@ -413,7 +413,7 @@ public class GameEngine {
         float separacion = 80f;
 
         Position posCarrier = new Position(baseX + separacion, baseY - separacion, z);
-        NavalCarrier carrier = new NavalCarrier(6, player2.getId(), 6, posCarrier);
+        NavalCarrier carrier = new NavalCarrier(6, player2.getId(), 3, posCarrier);
         gameState.addUnit(carrier);
         logger.debug("NavalCarrier creado: {} en ({}, {}, {})", carrier.getId(), posCarrier.getX(), posCarrier.getY(), posCarrier.getZ());
 
