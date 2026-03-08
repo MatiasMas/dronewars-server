@@ -25,11 +25,13 @@ public class CommunicationEvents {
         public static final String LOAD_SAVED_GAME = "LOAD_SAVED_GAME";
         public static final String GET_RANKING = "GET_RANKING";
         public static final String EXIT_GAME = "EXIT_GAME";
-    }
+
+        public static final String SET_GAME_PAUSED = "SET_GAME_PAUSED";
+        public static final String REQUEST_SAVE_GAME = "REQUEST_SAVE_GAME";
         // Futuro
         // public static final String REQUEST_MOVE_UNIT = "REQUEST_MOVE_UNIT";
         // public static final String REQUEST_ATTACK = "REQUEST_ATTACK";
-
+    }
 
     public static class ServerToClientEvents {
         public static final String PLAYER_REGISTERED = "PLAYER_REGISTERED";
@@ -46,6 +48,8 @@ public class CommunicationEvents {
         public static final String GAME_STATE_UPDATE = "GAME_STATE_UPDATE";
         public static final String MUNICION_RECARGADA = "MUNICION_RECARGADA";
         public static final String GAME_ENDED = "GAME_ENDED";
+        public static final String GAME_PAUSE_UPDATED = "GAME_PAUSE_UPDATED";
+        public static final String SAVE_GAME_RESULT = "SAVE_GAME_RESULT";
 
         // Menu principal
         public static final String GAME_CREATED = "GAME_CREATED";
@@ -53,6 +57,7 @@ public class CommunicationEvents {
         public static final String SAVED_GAME_LOADED = "SAVED_GAME_LOADED";
         public static final String RANKING_RECEIVED = "RANKING_RECEIVED";
         public static final String GAME_EXITED = "GAME_EXITED";
+
         // Futuro
         // public static final String GAME_STATE_UPDATED = "GAME_STATE_UPDATED";
         // public static final String UNIT_DESTROYED = "UNIT_DESTROYED";
