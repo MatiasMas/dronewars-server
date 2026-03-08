@@ -397,7 +397,7 @@ public class GameEngine {
                 float dx = col * separacion;
                 float dy = row * separacion;
                 Position pos = new Position(baseX + dx, baseY + dy, z);
-                AerialDrone drone = new AerialDrone(carrierId, 4500f, municionMaxima, player1.getId(), 1, pos);
+                AerialDrone drone = new AerialDrone(carrierId, 6000f, municionMaxima, player1.getId(), 1, pos);
                 gameState.addUnit(drone);
                 logger.debug("AerialDrone creado: {} en ({}, {}, {})", drone.getId(), pos.getX(), pos.getY(), pos.getZ());
             }
@@ -426,7 +426,7 @@ public class GameEngine {
                 float dx = -col * separacion;
                 float dy = row * separacion;
                 Position pos = new Position(baseX + dx, baseY + dy, z);
-                NavalDrone drone = new NavalDrone(carrierId, 4500f, municionMaxima, player2.getId(), 1, pos);
+                NavalDrone drone = new NavalDrone(carrierId, 6000f, municionMaxima, player2.getId(), 1, pos);
                 gameState.addUnit(drone);
                 logger.debug("NavalDrone creado: {} en ({}, {}, {})", drone.getId(), pos.getX(), pos.getY(), pos.getZ());
             }
