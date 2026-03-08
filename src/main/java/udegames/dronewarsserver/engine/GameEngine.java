@@ -345,8 +345,8 @@ public class GameEngine {
         Player player1 = new Player("Fuerzas Aereas");
         Player player2 = new Player("Fuerzas Navales");
 
-        player1.setId("equipo_rojo");
-        player2.setId("equipo_verde");
+        player1.setId("player_1");
+        player2.setId("player_2");
 
         gameState.addPlayer(player1);
         gameState.addPlayer(player2);
