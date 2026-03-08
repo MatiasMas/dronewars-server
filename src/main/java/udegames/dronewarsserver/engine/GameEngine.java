@@ -342,11 +342,11 @@ public class GameEngine {
 
     // --------------- Creacion de entidades para el juego ---------------
     private void createPlayers() {
-        Player player1 = new Player("Player 1");
-        Player player2 = new Player("Player 2");
+        Player player1 = new Player("Fuerzas Aereas");
+        Player player2 = new Player("Fuerzas Navales");
 
-        player1.setId("player_1");
-        player2.setId("player_2");
+        player1.setId("equipo_rojo");
+        player2.setId("equipo_verde");
 
         gameState.addPlayer(player1);
         gameState.addPlayer(player2);
@@ -457,12 +457,17 @@ public class GameEngine {
         EstadoEquipo e1 = calcularEstadoEquipo(ID_JUGADOR_1);
         EstadoEquipo e2 = calcularEstadoEquipo(ID_JUGADOR_2);
 
-        // RF25.a
-        if (!e1.tieneUnidadesVivas) {
+        // RF25.a: la victoria se define por destruccion total de drones enemigos,
+        // sin requerir destruccion del carrier.
+        if (e1.dronesVivos == 0 && e2.dronesVivos == 0) {
+            emitirFinDePartida(null, true, FIN_A);
+            return;
+        }
+        if (e1.dronesVivos == 0) {
             emitirFinDePartida(ID_JUGADOR_2, false, FIN_A);
             return;
         }
-        if (!e2.tieneUnidadesVivas) {
+        if (e2.dronesVivos == 0) {
             emitirFinDePartida(ID_JUGADOR_1, false, FIN_A);
             return;
         }

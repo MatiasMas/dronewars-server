@@ -79,7 +79,7 @@ public class UnitMovementSystem {
                 float movZ = newPosition.getZ() - current.getZ();
                 float distancia = (float) Math.sqrt(movX * movX + movY * movY + movZ * movZ);
                 // A mayor altura, menor consumo extra por altura.
-                float consumoPorAltura = CONSUMO_COMBUSTIBLE_POR_UNIDAD + (10 * newPosition.getZ());
+                float consumoPorAltura = CONSUMO_COMBUSTIBLE_POR_UNIDAD + (1 * newPosition.getZ());
                 boolean quedaCombustible = drone.consumirCombustible((int) (distancia + consumoPorAltura));
 
                 if(!quedaCombustible){
