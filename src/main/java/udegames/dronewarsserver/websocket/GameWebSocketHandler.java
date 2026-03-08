@@ -10,16 +10,10 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import udegames.dronewarsserver.domain.model.Drone;
+import udegames.dronewarsserver.domain.model.Player;
 import udegames.dronewarsserver.domain.model.Position;
 import udegames.dronewarsserver.domain.model.Unit;
-import udegames.dronewarsserver.dto.AmmoReloadedDTO;
-import udegames.dronewarsserver.dto.AvailablePlayerDTO;
-import udegames.dronewarsserver.dto.BombExplodedDTO;
-import udegames.dronewarsserver.dto.BombLaunchedDTO;
-import udegames.dronewarsserver.dto.GameUnitsDTO;
-import udegames.dronewarsserver.dto.MisilLanzadoDTO;
-import udegames.dronewarsserver.dto.ServerResponseDTO;
-import udegames.dronewarsserver.dto.UnitSelectionDTO;
+import udegames.dronewarsserver.dto.*;
 import udegames.dronewarsserver.engine.GameState;
 import udegames.dronewarsserver.mapper.UnitMapper;
 import udegames.dronewarsserver.service.IAmmoService;
@@ -27,18 +21,25 @@ import udegames.dronewarsserver.service.IBombingService;
 import udegames.dronewarsserver.service.IMissileService;
 import udegames.dronewarsserver.service.IMovementService;
 import udegames.dronewarsserver.service.ISelectionService;
-
+import udegames.dronewarsserver.service.MainMenuService;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+
 
 @Component
 public class GameWebSocketHandler extends TextWebSocketHandler {
     private static final Set<WebSocketSession> connectedSessions = ConcurrentHashMap.newKeySet();
     private static final Map<String, String> sessionToPlayerId = new ConcurrentHashMap<>();
     private static final Set<String> registeredPlayers = ConcurrentHashMap.newKeySet();
+    private static final long RECONNECT_GRACE_SECONDS = 1;
+    private static final String DISCONNECT_WIN_REASON = "PLAYER_DISCONNECTED_TIMEOUT";
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final GameState gameState;
     private final ISelectionService selectionService;
@@ -46,8 +47,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     private final IAmmoService servicioMunicion;
     private final IBombingService bombingService;
     private final IMissileService servicioMisil;
+    private final MainMenuService mainMenuService;
+    private final ScheduledExecutorService disconnectScheduler = Executors.newSingleThreadScheduledExecutor();
+    private final Map<String, ScheduledFuture<?>> pendingDisconnectTasks = new ConcurrentHashMap<>();
+
 
     private static final Logger logger = LoggerFactory.getLogger(GameWebSocketHandler.class);
+    private volatile boolean gameEnded = false;
 
     public GameWebSocketHandler(
             ISelectionService selectionService,
@@ -55,7 +61,8 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             IMovementService movementService,
             IAmmoService servicioMunicion,
             IBombingService bombingService,
-            IMissileService servicioMisil
+            IMissileService servicioMisil,
+            MainMenuService mainMenuService
     ) {
         this.selectionService = selectionService;
         this.bombingService = bombingService;
@@ -63,6 +70,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         this.movementService = movementService;
         this.servicioMunicion = servicioMunicion;
         this.servicioMisil = servicioMisil;
+        this.mainMenuService = mainMenuService;
     }
 
     @Override
@@ -77,11 +85,16 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         connectedSessions.remove(session);
+        boolean wasMatchInProgress = !gameEnded && registeredPlayers.size() >= 2;
         String playerId = sessionToPlayerId.remove(session.getId());
 
         if (playerId != null) {
             registeredPlayers.remove(playerId);
             logger.info("Jugador: {} desregistrado del juego, disponible de nuevo", playerId);
+
+            if (wasMatchInProgress) {
+                scheduleDisconnectForfeit(playerId);
+            }
         }
 
         logger.info("Cliente desconectado: {}", session.getId());
@@ -124,6 +137,27 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 case CommunicationEvents.ClientToServerEvents.LAUNCH_MISSILE:
                     hanldeDispararMisil(session, root);
                     break;
+                case CommunicationEvents.ClientToServerEvents.CREATE_NEW_GAME:
+                    handleCreateNewGame(session, root);
+                    break;
+                case CommunicationEvents.ClientToServerEvents.JOIN_GAME:
+                    handleJoinGame(session, root);
+                    break;
+                case CommunicationEvents.ClientToServerEvents.LOAD_SAVED_GAME:
+                    handleLoadSavedGame(session, root);
+                    break;
+                case CommunicationEvents.ClientToServerEvents.SET_GAME_PAUSED:
+                    handleSetGamePaused(session, root);
+                    break;
+                case CommunicationEvents.ClientToServerEvents.GET_RANKING:
+                    handleGetRanking(session);
+                    break;
+                case CommunicationEvents.ClientToServerEvents.EXIT_GAME:
+                    handleExitGame(session, root);
+                    break;
+                case CommunicationEvents.ServerToClientEvents.SAVE_GAME_RESULT:
+                    handleSaveGame(session);
+                    break;
                 default:
                     sendErrorMessage(session, "Tipo de mensaje desconocido: " + messageType);
             }
@@ -163,6 +197,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
+        Map<String, Object> payloadPausa = Map.of(
+                "paused", gameState.isPartidaPausada(),
+                "updatedBy", "server",
+                "timestamp", System.currentTimeMillis()
+        );
+        sendResponse(session, CommunicationEvents.ServerToClientEvents.GAME_PAUSE_UPDATED, payloadPausa);
+
         if (!gameState.doesPlayerExist(playerId)) {
             logger.error("El jugador no existe en el juego: {}", playerId);
             sendErrorMessage(session, "El jugador no existe en el juego: " + playerId);
@@ -177,6 +218,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
         sessionToPlayerId.put(session.getId(), playerId);
         registeredPlayers.add(playerId);
+        cancelDisconnectTimeout(playerId);
+        if (registeredPlayers.size() == 1) {
+            gameEnded = false;
+        }
 
         sendResponse(session, CommunicationEvents.ServerToClientEvents.PLAYER_REGISTERED, playerId);
 
@@ -257,6 +302,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
+        if (gameState.isPartidaPausada()) {
+            sendErrorMessage(session, "La partida esta pausada");
+            return;
+        }
+
         JsonNode datos = obtenerDatos(root);
         JsonNode unitIdNode = datos.get("unitId");
         JsonNode targetXNode = datos.get("targetX");
@@ -313,6 +363,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
+        if (gameState.isPartidaPausada()) {
+            sendErrorMessage(session, "La partida esta pausada");
+            return;
+        }
+
         // Payload esperado:
         // payload: { unitId: "<id_dron>", carrierId: "<id_portadrones_opcional>" }
         JsonNode datos = obtenerDatos(root);
@@ -363,6 +418,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
+        if (gameState.isPartidaPausada()) {
+            sendErrorMessage(session, "La partida esta pausada");
+            return;
+        }
+
         JsonNode datos = obtenerDatos(root);
         JsonNode nodoIdUnidad = datos.get("unitId");
         if (nodoIdUnidad == null || nodoIdUnidad.isNull()) {
@@ -395,10 +455,15 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         logger.info("Bomba lanzada: unitId={}, bombId={}", idUnidad, bombaLanzada.getBombId());
     }
 
-    private  void hanldeDispararMisil(WebSocketSession session, JsonNode root) throws IOException {
+    private void hanldeDispararMisil(WebSocketSession session, JsonNode root) throws IOException {
         String idJugador = sessionToPlayerId.get(session.getId());
         if(idJugador == null) {
             logger.warn("Jugador no registrado en la sesion: {}", session.getId());
+            return;
+        }
+
+        if (gameState.isPartidaPausada()) {
+            sendErrorMessage(session, "La partida esta pausada");
             return;
         }
 
@@ -471,6 +536,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     }
 
     public void broadcastToAll(String eventType, Object payload) {
+        if (CommunicationEvents.ServerToClientEvents.GAME_ENDED.equals(eventType)) {
+            gameEnded = true;
+        }
+
         String jsonResponse = serializeResponse(eventType, payload);
         if (jsonResponse == null) {
             return;
@@ -541,5 +610,159 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         return root;
     }
 
-}
+    private void handleCreateNewGame(WebSocketSession session, JsonNode root) throws IOException {
+        JsonNode datos = obtenerDatos(root);
+        String playerName = readString(datos, "playerName");
+        String playerId = readString(datos, "playerId");
 
+        MenuActionDTO result = mainMenuService.createNewGame(playerId, playerName);
+        sendResponse(session, CommunicationEvents.ServerToClientEvents.GAME_CREATED, result);
+    }
+
+    private void handleJoinGame(WebSocketSession session, JsonNode root) throws IOException {
+        JsonNode datos = obtenerDatos(root);
+        String gameId = readString(datos, "gameId");
+        String playerId = readString(datos, "playerId");
+
+        MenuActionDTO result = mainMenuService.joinGame(gameId, playerId);
+        sendResponse(session, CommunicationEvents.ServerToClientEvents.GAME_JOINED, result);
+    }
+
+    private void handleLoadSavedGame(WebSocketSession session, JsonNode root) throws IOException {
+        JsonNode datos = obtenerDatos(root);
+        String saveId = readString(datos, "saveId");
+
+        MenuActionDTO result = mainMenuService.loadSavedGame(saveId);
+        sendResponse(session, CommunicationEvents.ServerToClientEvents.SAVED_GAME_LOADED, result);
+    }
+
+    private void handleGetRanking(WebSocketSession session) throws IOException {
+        RankingResponseDTO ranking = mainMenuService.getRanking();
+        sendResponse(session, CommunicationEvents.ServerToClientEvents.RANKING_RECEIVED, ranking);
+    }
+
+    private void handleExitGame(WebSocketSession session, JsonNode root) throws IOException {
+        JsonNode datos = obtenerDatos(root);
+        String gameId = readString(datos, "gameId");
+        String playerId = readString(datos, "playerId");
+
+        MenuActionDTO result = mainMenuService.exitGame(gameId, playerId);
+
+        // Limpieza de sesión para flujo de juego actual
+        String registeredPlayerId = sessionToPlayerId.remove(session.getId());
+        if (registeredPlayerId != null) {
+            registeredPlayers.remove(registeredPlayerId);
+        }
+
+        sendResponse(session, CommunicationEvents.ServerToClientEvents.GAME_EXITED, result);
+    }
+
+    private String readString(JsonNode node, String fieldName) {
+        if (node == null) {
+            return null;
+        }
+
+        JsonNode valueNode = node.get(fieldName);
+        if (valueNode == null || valueNode.isNull()) {
+            return null;
+        }
+
+        String value = valueNode.asText();
+        if (value == null) {
+            return null;
+        }
+
+        String normalized = value.trim();
+        return normalized.isEmpty() ? null : normalized;
+    }
+
+    private void handleSetGamePaused(WebSocketSession session, JsonNode root) throws IOException {
+        String playerId = sessionToPlayerId.get(session.getId());
+        if(playerId == null){
+            sendErrorMessage(session, "PlayerId invalido");
+            return;
+        }
+
+        JsonNode datos = obtenerDatos(root);
+        JsonNode pausedNode = datos.get("paused");
+        if (pausedNode == null){
+            sendErrorMessage(session, "Pausa invalida");
+            return;
+        }
+        boolean pausada = pausedNode.asBoolean();
+        gameState.setPartidaPausada(pausada);
+        Map<String, Object> payload = Map.of(
+                "pausada", pausada,
+                "updatedBy", playerId,
+                "timestamp", System.currentTimeMillis()
+        );
+        broadcastToAll(CommunicationEvents.ServerToClientEvents.GAME_PAUSE_UPDATED, payload);
+    }
+
+    private void handleSaveGame(WebSocketSession session) throws IOException {
+        Map<String, Object> payload = Map.of(
+                "ok", false,
+                "message", "Guardar partida no se implemento todavia"
+        );
+        sendResponse(session, CommunicationEvents.ServerToClientEvents.SAVE_GAME_RESULT, payload);
+    }
+
+    private void scheduleDisconnectForfeit(String disconnectedPlayerId) {
+        cancelDisconnectTimeout(disconnectedPlayerId);
+
+        ScheduledFuture<?> future = disconnectScheduler.schedule(() -> {
+            try {
+                if (gameEnded) {
+                    return;
+                }
+
+                if (registeredPlayers.contains(disconnectedPlayerId)) {
+                    logger.info("Jugador {} se reconecto dentro de la ventana de gracia", disconnectedPlayerId);
+                    return;
+                }
+
+                String winnerId = resolveRemainingPlayer(disconnectedPlayerId);
+                if (winnerId == null || winnerId.isBlank()) {
+                    logger.warn("No hay jugador restante para declarar ganador tras desconexion de {}", disconnectedPlayerId);
+                    return;
+                }
+
+                GameEndedDTO payload = new GameEndedDTO(winnerId, false, DISCONNECT_WIN_REASON);
+                broadcastToAll(CommunicationEvents.ServerToClientEvents.GAME_ENDED, payload);
+                logger.info("Victoria por desconexion: desconectado={}, ganador={}", disconnectedPlayerId, winnerId);
+            } catch (Exception e) {
+                logger.error("Error evaluando desconexion de jugador {}", disconnectedPlayerId, e);
+            } finally {
+                pendingDisconnectTasks.remove(disconnectedPlayerId);
+            }
+        }, RECONNECT_GRACE_SECONDS, TimeUnit.SECONDS);
+
+        pendingDisconnectTasks.put(disconnectedPlayerId, future);
+        logger.info("Timeout de reconexion iniciado ({}s) para jugador {}", RECONNECT_GRACE_SECONDS, disconnectedPlayerId);
+    }
+
+    private void cancelDisconnectTimeout(String playerId) {
+        ScheduledFuture<?> pending = pendingDisconnectTasks.remove(playerId);
+        if (pending != null) {
+            pending.cancel(false);
+            logger.info("Timeout de reconexion cancelado para jugador {}", playerId);
+        }
+    }
+
+    private String resolveRemainingPlayer(String disconnectedPlayerId) {
+        String connectedOpponent = registeredPlayers.stream()
+                .filter(id -> !id.equals(disconnectedPlayerId))
+                .findFirst()
+                .orElse(null);
+
+        if (connectedOpponent != null) {
+            return connectedOpponent;
+        }
+
+        return gameState.getPlayers().stream()
+                .map(Player::getId)
+                .filter(id -> !id.equals(disconnectedPlayerId))
+                .findFirst()
+                .orElse(null);
+    }
+}

@@ -10,7 +10,7 @@ import udegames.dronewarsserver.engine.GameState;
 @Service
 public class AmmoService implements IAmmoService {
     // Rango maximo permitido para recargar (en unidades del mundo).
-    private static final float RANGO_RECARGA_UNIDADES = 20f;
+    private static final float RANGO_RECARGA_UNIDADES = 120f;
 
     private final GameState estadoJuego;
 

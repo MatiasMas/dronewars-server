@@ -17,6 +17,7 @@ public class GameState {
     private final Map<String, BombProjectile> bombProjectiles;
     private final Map<String, MissileProjectile> missileProjectiles;
     private final Map<String, UnitMovement> unitMovements;
+    private volatile boolean partidaPausada = false;
     private final long createdAt;
 
     public GameState(String gameId) {
@@ -144,5 +145,14 @@ public class GameState {
 
     public boolean doesPlayerExist(String playerId) {
         return players.containsKey(playerId);
+    }
+
+    // ------------ Gestion estado servidor  ------------
+    public boolean isPartidaPausada() {
+        return partidaPausada;
+    }
+
+    public void setPartidaPausada(boolean partidaPausada) {
+        this.partidaPausada = partidaPausada;
     }
 }
