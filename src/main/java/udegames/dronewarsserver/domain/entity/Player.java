@@ -1,4 +1,4 @@
-package udegames.dronewarsserver.domain.model;
+package udegames.dronewarsserver.domain.entity;
 
 import java.util.HashSet;
 import java.util.Set;

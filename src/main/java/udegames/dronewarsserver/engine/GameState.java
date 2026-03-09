@@ -1,10 +1,10 @@
 package udegames.dronewarsserver.engine;
 
-import udegames.dronewarsserver.domain.model.Player;
-import udegames.dronewarsserver.domain.model.BombProjectile;
-import udegames.dronewarsserver.domain.model.MissileProjectile;
-import udegames.dronewarsserver.domain.model.Position;
-import udegames.dronewarsserver.domain.model.Unit;
+import udegames.dronewarsserver.domain.entity.Player;
+import udegames.dronewarsserver.domain.entity.BombProjectile;
+import udegames.dronewarsserver.domain.entity.MissileProjectile;
+import udegames.dronewarsserver.domain.entity.Position;
+import udegames.dronewarsserver.domain.entity.Unit;
 import udegames.dronewarsserver.engine.movement.UnitMovement;
 
 import java.util.*;

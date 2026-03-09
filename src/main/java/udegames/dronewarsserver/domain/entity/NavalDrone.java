@@ -1,4 +1,4 @@
-package udegames.dronewarsserver.domain.model;
+package udegames.dronewarsserver.domain.entity;
 
 import udegames.dronewarsserver.domain.enums.UnitType;
 

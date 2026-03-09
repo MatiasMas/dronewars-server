@@ -2,10 +2,10 @@ package udegames.dronewarsserver.service;
 
 import org.springframework.stereotype.Service;
 import udegames.dronewarsserver.domain.enums.DroneState;
-import udegames.dronewarsserver.domain.model.Drone;
-import udegames.dronewarsserver.domain.model.DroneCarrier;
-import udegames.dronewarsserver.domain.model.Position;
-import udegames.dronewarsserver.domain.model.Unit;
+import udegames.dronewarsserver.domain.entity.Drone;
+import udegames.dronewarsserver.domain.entity.DroneCarrier;
+import udegames.dronewarsserver.domain.entity.Position;
+import udegames.dronewarsserver.domain.entity.Unit;
 import udegames.dronewarsserver.dto.BombExplodedDTO;
 import udegames.dronewarsserver.dto.BombLaunchedDTO;
 import udegames.dronewarsserver.dto.UnitSelectionDTO;
