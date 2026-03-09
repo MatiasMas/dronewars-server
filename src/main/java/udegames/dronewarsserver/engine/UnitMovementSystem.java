@@ -83,18 +83,14 @@ public class UnitMovementSystem {
                 boolean quedaCombustible = drone.consumirCombustible((int) (distancia + consumoPorAltura));
 
                 if(!quedaCombustible){
-                    drone.inhabilitarPorCombustible();
+                    // Mata al dron
+                    drone.applyDamage(drone.getHealth());
+
+                    // Limpia movimiento pendiente
                     gameState.clearUnitMovement(unitId);
 
-                    // Forzamos el descenso cuando se queda sin combustible.
-                    Position posicionActual = unit.getPosition();
-                    Position destinoForzado = new Position(posicionActual.getX(), posicionActual.getY(), ALTURA_FORZADA_COMBUSTIBLE);
-
-                    if (Math.abs(posicionActual.getZ() - ALTURA_FORZADA_COMBUSTIBLE) > positionEpsilon) {
-                        gameState.setUnitMovement(unitId, destinoForzado, 20f);
-                    } else {
-                        unit.setPosition(destinoForzado);
-                    }
+                    // Lo elimina del estado (desaparece)
+                    gameState.removeUnit(unitId);
                 }
             }
         }

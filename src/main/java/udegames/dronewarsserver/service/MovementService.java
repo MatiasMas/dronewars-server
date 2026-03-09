@@ -21,7 +21,7 @@ public class MovementService implements IMovementService {
     private static final float PLAYER_HEIGHT_BONUS_FACTOR = 1.005f;
 
     // Velocidad de movimiento en unidades por segundo (se usa por el motor). Aumentada para mapa grande.
-    private static final float DEFAULT_MOVE_SPEED_UNITS_PER_SEC = 400f;
+    private static final float DEFAULT_MOVE_SPEED_UNITS_PER_SEC = 300f;
 
     private final GameState gameState;
 
