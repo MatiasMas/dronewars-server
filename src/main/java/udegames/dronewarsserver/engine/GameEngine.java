@@ -582,7 +582,7 @@ public class GameEngine {
                 continue;
             }
 
-            boolean hayPortadronesCerca = false;
+            DroneCarrier carrierEnRango = null;
             for(Unit posibleCarrier : gameState.getUnits()){
                 if(!(posibleCarrier instanceof DroneCarrier)){
                     continue;
@@ -600,20 +600,32 @@ public class GameEngine {
                 float rangoCuadrado = RANGO_RECARGA_AUTOMATICA * RANGO_RECARGA_AUTOMATICA;
 
                 if(distanciaCuadrada <= rangoCuadrado){
-                    hayPortadronesCerca = true;
+                    carrierEnRango = (DroneCarrier) posibleCarrier;
                     break;
                 }
             }
-            if(!hayPortadronesCerca){
+            if(carrierEnRango == null){
                 continue;
             }
-            //Recargamos y notificamos client
-            dron.reload();
-            dron.refuel();
+
+            int ammoAntes = dron.getAmmo();
+            float combustibleAntes = dron.getCombustible();
+
+            if (faltaMunicion) {
+                int ammoFaltante = dron.getMaxAmmo() - dron.getAmmo();
+                int municionOtorgada = carrierEnRango.consumeAmmoSupply(ammoFaltante);
+                dron.reloadPartial(municionOtorgada);
+            }
+            if (faltaCombustible) {
+                dron.refuel();
+            }
             dron.habilitarLuegoRecarga();
 
-            AmmoReloadedDTO payload = new AmmoReloadedDTO(dron.getId(), dron.getAmmo(), dron.getCombustible());
-            gameWebSocketHandler.broadcastToAll(CommunicationEvents.ServerToClientEvents.MUNICION_RECARGADA, payload);
+            boolean huboCambios = dron.getAmmo() != ammoAntes || dron.getCombustible() != combustibleAntes;
+            if (huboCambios) {
+                AmmoReloadedDTO payload = new AmmoReloadedDTO(dron.getId(), dron.getAmmo(), dron.getCombustible());
+                gameWebSocketHandler.broadcastToAll(CommunicationEvents.ServerToClientEvents.MUNICION_RECARGADA, payload);
+            }
         }
     }
 
