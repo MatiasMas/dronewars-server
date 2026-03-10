@@ -10,10 +10,7 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import udegames.dronewarsserver.domain.entity.Drone;
-import udegames.dronewarsserver.domain.entity.Player;
-import udegames.dronewarsserver.domain.entity.Position;
-import udegames.dronewarsserver.domain.entity.Unit;
+import udegames.dronewarsserver.domain.entity.*;
 import udegames.dronewarsserver.dto.*;
 import udegames.dronewarsserver.engine.GameState;
 import udegames.dronewarsserver.mapper.UnitMapper;
@@ -739,10 +736,14 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         List<UnitPositionDTO> unitPositions = gameState.getUnits().stream()
                 .map(unit -> {
                     float combustible = 0f;
+                    int municionDisponible = 0;
                     if (unit instanceof Drone dron) {
                         combustible = dron.getCombustible();
                     }
-                    return new UnitPositionDTO(unit.getId(), unit.getPosition(), combustible);
+                    if (unit instanceof DroneCarrier carrier) {
+                        municionDisponible = carrier.getAvailableAmmoSupply();
+                    }
+                    return new UnitPositionDTO(unit.getId(), unit.getPosition(), combustible, municionDisponible);
                 })
                 .toList();
 
@@ -849,10 +850,14 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             List<UnitPositionDTO> unitPositions = gameState.getUnits().stream()
                     .map(unit -> {
                         float combustible = 0f;
+                        int municionDisponible = 0;
                         if (unit instanceof Drone dron) {
                             combustible = dron.getCombustible();
                         }
-                        return new UnitPositionDTO(unit.getId(), unit.getPosition(), combustible);
+                        if (unit instanceof DroneCarrier carrier) {
+                            municionDisponible = carrier.getAvailableAmmoSupply();
+                        }
+                        return new UnitPositionDTO(unit.getId(), unit.getPosition(), combustible, municionDisponible);
                     })
                     .toList();
 
