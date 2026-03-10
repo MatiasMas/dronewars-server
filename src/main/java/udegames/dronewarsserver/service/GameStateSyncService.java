@@ -1,8 +1,8 @@
 package udegames.dronewarsserver.service;
 
 import org.springframework.stereotype.Service;
-import udegames.dronewarsserver.domain.model.Drone;
-import udegames.dronewarsserver.domain.model.DroneCarrier;
+import udegames.dronewarsserver.domain.entity.Drone;
+import udegames.dronewarsserver.domain.entity.DroneCarrier;
 import udegames.dronewarsserver.dto.UnitPositionDTO;
 import udegames.dronewarsserver.engine.GameState;
 import udegames.dronewarsserver.websocket.CommunicationEvents;

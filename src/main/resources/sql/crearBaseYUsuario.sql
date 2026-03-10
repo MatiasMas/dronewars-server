@@ -1,0 +1,9 @@
+CREATE DATABASE dronewars;
+
+CREATE USER admin WITH PASSWORD 'admin';
+
+GRANT ALL PRIVILEGES ON DATABASE dronewars TO admin;
+
+GRANT ALL ON SCHEMA public TO admin;
+GRANT CREATE ON SCHEMA public TO admin;
+ALTER SCHEMA public OWNER TO admin;

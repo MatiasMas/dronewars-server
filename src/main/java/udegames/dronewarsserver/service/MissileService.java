@@ -2,17 +2,15 @@ package udegames.dronewarsserver.service;
 
 import org.springframework.stereotype.Service;
 import udegames.dronewarsserver.domain.enums.DroneState;
-import udegames.dronewarsserver.domain.model.Drone;
-import udegames.dronewarsserver.domain.model.MissileProjectile;
-import udegames.dronewarsserver.domain.model.Position;
-import udegames.dronewarsserver.domain.model.Unit;
+import udegames.dronewarsserver.domain.entity.Drone;
+import udegames.dronewarsserver.domain.entity.MissileProjectile;
+import udegames.dronewarsserver.domain.entity.Position;
+import udegames.dronewarsserver.domain.entity.Unit;
 import udegames.dronewarsserver.dto.MisilImpactoDTO;
 import udegames.dronewarsserver.dto.MisilLanzadoDTO;
-import udegames.dronewarsserver.dto.UnitSelectionDTO;
 import udegames.dronewarsserver.engine.GameState;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Service

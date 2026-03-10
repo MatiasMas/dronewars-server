@@ -1,6 +1,6 @@
 package udegames.dronewarsserver.dto;
 
-import udegames.dronewarsserver.domain.model.Position;
+import udegames.dronewarsserver.domain.entity.Position;
 
 public class UnitPositionDTO {
     private String unitId;

@@ -1,4 +1,4 @@
-package udegames.dronewarsserver.domain.model;
+package udegames.dronewarsserver.domain.entity;
 
 // Misil simple controlado por el servidor.
 public class MissileProjectile {

@@ -1,8 +1,8 @@
 package udegames.dronewarsserver.mapper;
 
-import udegames.dronewarsserver.domain.model.Drone;
-import udegames.dronewarsserver.domain.model.DroneCarrier;
-import udegames.dronewarsserver.domain.model.Unit;
+import udegames.dronewarsserver.domain.entity.Drone;
+import udegames.dronewarsserver.domain.entity.DroneCarrier;
+import udegames.dronewarsserver.domain.entity.Unit;
 import udegames.dronewarsserver.dto.UnitSelectionDTO;
 
 public class UnitMapper {

@@ -1,7 +1,7 @@
 package udegames.dronewarsserver.service;
 
-import udegames.dronewarsserver.domain.model.Position;
-import udegames.dronewarsserver.domain.model.Unit;
+import udegames.dronewarsserver.domain.entity.Position;
+import udegames.dronewarsserver.domain.entity.Unit;
 
 public interface IMovementService {
     boolean canMoveUnit(String unitId, String playerId, Position target);

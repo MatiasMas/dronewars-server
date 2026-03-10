@@ -2,23 +2,22 @@ package udegames.dronewarsserver.engine;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import udegames.dronewarsserver.domain.model.AerialCarrier;
-import udegames.dronewarsserver.domain.model.AerialDrone;
-import udegames.dronewarsserver.domain.model.BombProjectile;
-import udegames.dronewarsserver.domain.model.Drone;
-import udegames.dronewarsserver.domain.model.DroneCarrier;
-import udegames.dronewarsserver.domain.model.MissileProjectile;
-import udegames.dronewarsserver.domain.model.Player;
-import udegames.dronewarsserver.domain.model.Position;
+import udegames.dronewarsserver.domain.entity.AerialCarrier;
+import udegames.dronewarsserver.domain.entity.AerialDrone;
+import udegames.dronewarsserver.domain.entity.BombProjectile;
+import udegames.dronewarsserver.domain.entity.Drone;
+import udegames.dronewarsserver.domain.entity.DroneCarrier;
+import udegames.dronewarsserver.domain.entity.MissileProjectile;
+import udegames.dronewarsserver.domain.entity.Player;
+import udegames.dronewarsserver.domain.entity.Position;
 import udegames.dronewarsserver.dto.*;
 import udegames.dronewarsserver.service.GameStateSyncService;
-import udegames.dronewarsserver.domain.model.Unit;
+import udegames.dronewarsserver.domain.entity.Unit;
 import udegames.dronewarsserver.mapper.UnitMapper;
 import udegames.dronewarsserver.websocket.CommunicationEvents;
 import udegames.dronewarsserver.websocket.GameWebSocketHandler;
-import udegames.dronewarsserver.domain.model.DroneCarrier;
-import udegames.dronewarsserver.domain.model.NavalCarrier;
-import udegames.dronewarsserver.domain.model.NavalDrone;
+import udegames.dronewarsserver.domain.entity.NavalCarrier;
+import udegames.dronewarsserver.domain.entity.NavalDrone;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +30,7 @@ public class GameEngine {
     private final GameStateSyncService gameStateSyncService;
     private final UnitMovementSystem movementSystem;
     private final GameWebSocketHandler gameWebSocketHandler;
-    private final ScheduledExecutorService executor;
+    private ScheduledExecutorService executor;
     private volatile boolean running;
     private long currentTick;
 
@@ -93,6 +92,65 @@ public class GameEngine {
 
         logger.info("[CREATE] Juego iniciado");
         logger.info("Jugadores: {}", gameState.getPlayers().size());
+    }
+
+    /**
+     * Reinicia el estado del juego a una partida limpia desde cero.
+     * Limpia el GameState actual y vuelve a crear jugadores y unidades.
+     */
+    public void resetAndCreate() {
+        logger.info("[RESET] Reiniciando juego a estado inicial limpio");
+        gameState.resetState();
+        gameFinished = false;
+        tsCarrierDestroyedP1 = null;
+        tsCarrierDestroyedP2 = null;
+        create();
+        
+        // Si el motor estaba detenido, reiniciarlo
+        if (!running) {
+            restartEngine();
+        }
+    }
+    
+    /**
+     * Reinicia el motor del juego si estaba detenido.
+     * Crea un nuevo executor y comienza los ticks.
+     */
+    private void restartEngine() {
+        if (running) {
+            return;
+        }
+        
+        // Crear nuevo executor si el anterior fue apagado
+        if (executor.isShutdown()) {
+            executor = Executors.newSingleThreadScheduledExecutor();
+        }
+        
+        running = true;
+        currentTick = 0;
+        logger.info("[RESTART] Reiniciando motor del juego");
+        
+        executor.scheduleAtFixedRate(
+                this::update,
+                0,
+                TICK_INTERVAL_MS,
+                TimeUnit.MILLISECONDS
+        );
+    }
+    
+    /**
+     * Reinicia el motor después de cargar una partida guardada.
+     * Limpia flags de fin de partida y reinicia el executor si es necesario.
+     */
+    public void restartAfterLoad() {
+        logger.info("[RESTART_LOAD] Reiniciando motor después de cargar partida");
+        gameFinished = false;
+        tsCarrierDestroyedP1 = null;
+        tsCarrierDestroyedP2 = null;
+        
+        if (!running) {
+            restartEngine();
+        }
     }
 
     /*

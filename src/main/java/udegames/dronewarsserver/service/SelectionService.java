@@ -1,7 +1,7 @@
 package udegames.dronewarsserver.service;
 
 import org.springframework.stereotype.Service;
-import udegames.dronewarsserver.domain.model.Unit;
+import udegames.dronewarsserver.domain.entity.Unit;
 import udegames.dronewarsserver.engine.GameState;
 
 @Service
