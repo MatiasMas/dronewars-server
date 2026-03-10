@@ -86,11 +86,14 @@ public class AmmoService implements IAmmoService {
             return false;
         }
 
-        // Permitimos recarga si falta municion o combustible.
+        // Permitimos recarga:
+        // - siempre si falta combustible,
+        // - si falta municion y el carrier aun tiene stock.
         boolean faltaMunicion = dron.getAmmo() < dron.getMaxAmmo();
         boolean faltaCombustible = dron.getCombustible() < dron.getMaxFuel();
+        boolean hayStockMunicion = ((DroneCarrier) unidadPortadrones).getAvailableAmmoSupply() > 0;
 
-        return faltaMunicion || faltaCombustible;
+        return faltaCombustible || (faltaMunicion && hayStockMunicion);
     }
 
     @Override
@@ -101,8 +104,16 @@ public class AmmoService implements IAmmoService {
         }
 
         Drone dron = (Drone) unidad;
-        // Recarga completa.
-        dron.reload();
+        Unit carrierUnit = estadoJuego.getUnitById(dron.getCarrierId());
+        if (carrierUnit instanceof DroneCarrier carrier && !carrier.isDestroyed()) {
+            int missingAmmo = dron.getMaxAmmo() - dron.getAmmo();
+            if (missingAmmo > 0) {
+                int grantedAmmo = carrier.consumeAmmoSupply(missingAmmo);
+                dron.reloadPartial(grantedAmmo);
+            }
+        }
+
+        // Siempre permitimos recarga de combustible.
         dron.refuel();
         dron.habilitarLuegoRecarga();
         return dron.getAmmo();
