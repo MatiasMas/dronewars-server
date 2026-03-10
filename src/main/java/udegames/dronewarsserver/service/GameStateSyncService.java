@@ -2,6 +2,7 @@ package udegames.dronewarsserver.service;
 
 import org.springframework.stereotype.Service;
 import udegames.dronewarsserver.domain.entity.Drone;
+import udegames.dronewarsserver.domain.entity.DroneCarrier;
 import udegames.dronewarsserver.dto.UnitPositionDTO;
 import udegames.dronewarsserver.engine.GameState;
 import udegames.dronewarsserver.websocket.CommunicationEvents;
@@ -23,10 +24,14 @@ public class GameStateSyncService {
         List<UnitPositionDTO> unitPositions = gameState.getUnits().stream()
                 .map(unit -> {
                     float combustible = 0f;
+                    int municionDisponible = 0;
                     if (unit instanceof Drone dron) {
                         combustible = dron.getCombustible();
                     }
-                    return new UnitPositionDTO(unit.getId(), unit.getPosition(), combustible);
+                    if (unit instanceof DroneCarrier carrier) {
+                        municionDisponible = carrier.getAvailableAmmoSupply();
+                    }
+                    return new UnitPositionDTO(unit.getId(), unit.getPosition(), combustible, municionDisponible);
                 })
                 .toList();
 

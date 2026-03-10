@@ -2,7 +2,9 @@ package udegames.dronewarsserver.service;
 
 import org.springframework.stereotype.Service;
 import udegames.dronewarsserver.domain.enums.DroneState;
+import udegames.dronewarsserver.domain.entity.AerialDrone;
 import udegames.dronewarsserver.domain.entity.Drone;
+import udegames.dronewarsserver.domain.entity.NavalDrone;
 import udegames.dronewarsserver.domain.entity.Position;
 import udegames.dronewarsserver.domain.entity.Unit;
 import udegames.dronewarsserver.engine.GameState;
@@ -15,13 +17,14 @@ public class MovementService implements IMovementService {
     private static final float MIN_Y = 0f;
     private static final float MAX_Y = 2500f;
 
-    // Limites de altura (Z). BASE_MAX_Z es el tope base y el bonus aplica solo a player_1.
+    // Limites de altura (Z) por tipo de dron.
     private static final float MIN_Z = 0f;
-    private static final float BASE_MAX_Z = 10f;
-    private static final float PLAYER_HEIGHT_BONUS_FACTOR = 1.005f;
+    private static final float MAX_Z_DEFAULT = 10f;
+    private static final float MAX_Z_BOMB_DRONE = 10.1f;
+    private static final float MAX_Z_MISSILE_DRONE = 10f;
 
     // Velocidad de movimiento en unidades por segundo (se usa por el motor). Aumentada para mapa grande.
-    private static final float DEFAULT_MOVE_SPEED_UNITS_PER_SEC = 300f;
+    private static final float DEFAULT_MOVE_SPEED_UNITS_PER_SEC = 250f;
 
     private final GameState gameState;
 
@@ -61,7 +64,7 @@ public class MovementService implements IMovementService {
             }
         }
 
-        return isWithinBounds(target) && isWithinHeight(target, playerId);
+        return isWithinBounds(target) && isWithinHeight(target, unit);
     }
 
     @Override
@@ -83,16 +86,19 @@ public class MovementService implements IMovementService {
                 && target.getY() <= MAX_Y;
     }
 
-    private boolean isWithinHeight(Position target, String playerId) {
-        float maxZ = getMaxHeightForPlayer(playerId);
+    private boolean isWithinHeight(Position target, Unit unit) {
+        float maxZ = getMaxHeightForUnit(unit);
         return target.getZ() >= MIN_Z && target.getZ() <= maxZ;
     }
 
-    private float getMaxHeightForPlayer(String playerId) {
-        if ("player_1".equals(playerId)) {
-            return BASE_MAX_Z * PLAYER_HEIGHT_BONUS_FACTOR;
+    private float getMaxHeightForUnit(Unit unit) {
+        if (unit instanceof AerialDrone) {
+            return MAX_Z_BOMB_DRONE;
+        }
+        if (unit instanceof NavalDrone) {
+            return MAX_Z_MISSILE_DRONE;
         }
 
-        return BASE_MAX_Z;
+        return MAX_Z_DEFAULT;
     }
 }

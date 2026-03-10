@@ -66,6 +66,22 @@ public abstract class Drone extends Unit {
         this.ammo = maxAmmo;
     }
 
+    // Agrega municion parcial, sin superar el maximo.
+    public int reloadPartial(int amount) {
+        if (amount <= 0) {
+            return 0;
+        }
+
+        int missingAmmo = maxAmmo - ammo;
+        if (missingAmmo <= 0) {
+            return 0;
+        }
+
+        int loaded = Math.min(amount, missingAmmo);
+        ammo += loaded;
+        return loaded;
+    }
+
     // Consume municion si hay disponible.
     public boolean consumirMunicion(int cantidad) {
         if (cantidad <= 0) {

@@ -455,7 +455,7 @@ public class GameEngine {
                 float dx = col * separacion;
                 float dy = row * separacion;
                 Position pos = new Position(baseX + dx, baseY + dy, z);
-                AerialDrone drone = new AerialDrone(carrierId, 6000f, municionMaxima, player1.getId(), 1, pos);
+                AerialDrone drone = new AerialDrone(carrierId, 3500f, municionMaxima, player1.getId(), 1, pos);
                 gameState.addUnit(drone);
                 logger.debug("AerialDrone creado: {} en ({}, {}, {})", drone.getId(), pos.getX(), pos.getY(), pos.getZ());
             }
@@ -484,7 +484,7 @@ public class GameEngine {
                 float dx = -col * separacion;
                 float dy = row * separacion;
                 Position pos = new Position(baseX + dx, baseY + dy, z);
-                NavalDrone drone = new NavalDrone(carrierId, 6000f, municionMaxima, player2.getId(), 1, pos);
+                NavalDrone drone = new NavalDrone(carrierId, 8000f, municionMaxima, player2.getId(), 1, pos);
                 gameState.addUnit(drone);
                 logger.debug("NavalDrone creado: {} en ({}, {}, {})", drone.getId(), pos.getX(), pos.getY(), pos.getZ());
             }
@@ -640,7 +640,7 @@ public class GameEngine {
                 continue;
             }
 
-            boolean hayPortadronesCerca = false;
+            DroneCarrier carrierEnRango = null;
             for(Unit posibleCarrier : gameState.getUnits()){
                 if(!(posibleCarrier instanceof DroneCarrier)){
                     continue;
@@ -658,20 +658,32 @@ public class GameEngine {
                 float rangoCuadrado = RANGO_RECARGA_AUTOMATICA * RANGO_RECARGA_AUTOMATICA;
 
                 if(distanciaCuadrada <= rangoCuadrado){
-                    hayPortadronesCerca = true;
+                    carrierEnRango = (DroneCarrier) posibleCarrier;
                     break;
                 }
             }
-            if(!hayPortadronesCerca){
+            if(carrierEnRango == null){
                 continue;
             }
-            //Recargamos y notificamos client
-            dron.reload();
-            dron.refuel();
+
+            int ammoAntes = dron.getAmmo();
+            float combustibleAntes = dron.getCombustible();
+
+            if (faltaMunicion) {
+                int ammoFaltante = dron.getMaxAmmo() - dron.getAmmo();
+                int municionOtorgada = carrierEnRango.consumeAmmoSupply(ammoFaltante);
+                dron.reloadPartial(municionOtorgada);
+            }
+            if (faltaCombustible) {
+                dron.refuel();
+            }
             dron.habilitarLuegoRecarga();
 
-            AmmoReloadedDTO payload = new AmmoReloadedDTO(dron.getId(), dron.getAmmo(), dron.getCombustible());
-            gameWebSocketHandler.broadcastToAll(CommunicationEvents.ServerToClientEvents.MUNICION_RECARGADA, payload);
+            boolean huboCambios = dron.getAmmo() != ammoAntes || dron.getCombustible() != combustibleAntes;
+            if (huboCambios) {
+                AmmoReloadedDTO payload = new AmmoReloadedDTO(dron.getId(), dron.getAmmo(), dron.getCombustible());
+                gameWebSocketHandler.broadcastToAll(CommunicationEvents.ServerToClientEvents.MUNICION_RECARGADA, payload);
+            }
         }
     }
 
