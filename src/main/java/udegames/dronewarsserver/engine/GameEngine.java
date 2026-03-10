@@ -30,7 +30,7 @@ public class GameEngine {
     private final GameStateSyncService gameStateSyncService;
     private final UnitMovementSystem movementSystem;
     private final GameWebSocketHandler gameWebSocketHandler;
-    private final ScheduledExecutorService executor;
+    private ScheduledExecutorService executor;
     private volatile boolean running;
     private long currentTick;
 
@@ -92,6 +92,65 @@ public class GameEngine {
 
         logger.info("[CREATE] Juego iniciado");
         logger.info("Jugadores: {}", gameState.getPlayers().size());
+    }
+
+    /**
+     * Reinicia el estado del juego a una partida limpia desde cero.
+     * Limpia el GameState actual y vuelve a crear jugadores y unidades.
+     */
+    public void resetAndCreate() {
+        logger.info("[RESET] Reiniciando juego a estado inicial limpio");
+        gameState.resetState();
+        gameFinished = false;
+        tsCarrierDestroyedP1 = null;
+        tsCarrierDestroyedP2 = null;
+        create();
+        
+        // Si el motor estaba detenido, reiniciarlo
+        if (!running) {
+            restartEngine();
+        }
+    }
+    
+    /**
+     * Reinicia el motor del juego si estaba detenido.
+     * Crea un nuevo executor y comienza los ticks.
+     */
+    private void restartEngine() {
+        if (running) {
+            return;
+        }
+        
+        // Crear nuevo executor si el anterior fue apagado
+        if (executor.isShutdown()) {
+            executor = Executors.newSingleThreadScheduledExecutor();
+        }
+        
+        running = true;
+        currentTick = 0;
+        logger.info("[RESTART] Reiniciando motor del juego");
+        
+        executor.scheduleAtFixedRate(
+                this::update,
+                0,
+                TICK_INTERVAL_MS,
+                TimeUnit.MILLISECONDS
+        );
+    }
+    
+    /**
+     * Reinicia el motor después de cargar una partida guardada.
+     * Limpia flags de fin de partida y reinicia el executor si es necesario.
+     */
+    public void restartAfterLoad() {
+        logger.info("[RESTART_LOAD] Reiniciando motor después de cargar partida");
+        gameFinished = false;
+        tsCarrierDestroyedP1 = null;
+        tsCarrierDestroyedP2 = null;
+        
+        if (!running) {
+            restartEngine();
+        }
     }
 
     /*

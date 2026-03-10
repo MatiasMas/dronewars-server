@@ -10,7 +10,7 @@ import java.util.Set;
 public class Equipo {
     @Id
     @Column(name = "id_equipo")
-    private String id;
+    private Short id;
 
     @Column(name = "nombre", nullable = false, unique = true, length = 50)
     private String nombre;
@@ -18,11 +18,11 @@ public class Equipo {
     @OneToMany(mappedBy = "equipo")
     private Set<Jugador> jugadores = new HashSet<>();
 
-    public String getId() {
+    public Short getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(Short id) {
         this.id = id;
     }
 

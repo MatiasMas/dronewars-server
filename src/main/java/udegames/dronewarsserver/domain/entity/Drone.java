@@ -37,9 +37,17 @@ public abstract class Drone extends Unit {
         return ammo;
     }
 
+    public void setAmmo(int ammo) {
+        this.ammo = Math.max(0, Math.min(ammo, maxAmmo));
+    }
+
     // Maximo permitido para la unidad (segun el jugador).
     public int getMaxAmmo() {
         return maxAmmo;
+    }
+
+    public void setCombustible(float combustible) {
+        this.fuel = Math.max(0f, Math.min(combustible, maxFuel));
     }
 
     public DroneState getState() {

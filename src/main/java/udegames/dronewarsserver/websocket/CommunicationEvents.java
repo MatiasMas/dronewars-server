@@ -25,9 +25,12 @@ public class CommunicationEvents {
         public static final String LOAD_SAVED_GAME = "LOAD_SAVED_GAME";
         public static final String GET_RANKING = "GET_RANKING";
         public static final String EXIT_GAME = "EXIT_GAME";
+        public static final String REQUEST_AVAILABLE_PLAYERS = "REQUEST_AVAILABLE_PLAYERS";
 
         public static final String SET_GAME_PAUSED = "SET_GAME_PAUSED";
         public static final String REQUEST_SAVE_GAME = "REQUEST_SAVE_GAME";
+        public static final String RESET_GAME = "RESET_GAME";
+        public static final String SAVE_WINNER_SCORE = "SAVE_WINNER_SCORE";
         // Futuro
         // public static final String REQUEST_MOVE_UNIT = "REQUEST_MOVE_UNIT";
         // public static final String REQUEST_ATTACK = "REQUEST_ATTACK";

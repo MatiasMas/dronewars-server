@@ -24,16 +24,38 @@ public abstract class Unit {
         return id;
     }
 
+    public void setId(String id) {
+        this.id = id;
+    }
+
     public String getOwnerId() {
         return ownerId;
+    }
+
+    public void setOwnerId(String ownerId) {
+        this.ownerId = ownerId;
     }
 
     public int getHealth() {
         return health;
     }
 
+    public void setHealth(int health) {
+        this.health = Math.max(0, health);
+        if (this.health == 0) {
+            this.destroyed = true;
+        }
+    }
+
     public boolean isDestroyed() {
         return destroyed;
+    }
+
+    public void setDestroyed(boolean destroyed) {
+        this.destroyed = destroyed;
+        if (destroyed) {
+            this.health = 0;
+        }
     }
 
     public Position getPosition() {

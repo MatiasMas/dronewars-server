@@ -19,5 +19,19 @@ public class PortadronAereo extends Unidad {
     )
     private Set<DronAereo> drones = new HashSet<>();
 
-    // getters y setters
+    public int getIntegridad() {
+        return integridad;
+    }
+
+    public void setIntegridad(int integridad) {
+        this.integridad = integridad;
+    }
+
+    public Set<DronAereo> getDrones() {
+        return drones;
+    }
+
+    public void setDrones(Set<DronAereo> drones) {
+        this.drones = drones;
+    }
 }

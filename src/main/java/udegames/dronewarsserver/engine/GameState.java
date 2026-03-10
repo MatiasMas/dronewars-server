@@ -155,4 +155,17 @@ public class GameState {
     public void setPartidaPausada(boolean partidaPausada) {
         this.partidaPausada = partidaPausada;
     }
+
+    /**
+     * Resetea el estado en memoria para cargar una partida desde la base de datos.
+     * Mantiene el mismo gameId del servidor.
+     */
+    public void resetState() {
+        players.clear();
+        units.clear();
+        bombProjectiles.clear();
+        missileProjectiles.clear();
+        unitMovements.clear();
+        partidaPausada = false;
+    }
 }

@@ -80,7 +80,7 @@ public class Jugador {
         return puntaje;
     }
 
-    public void setPuntajes(Puntaje puntajes) {
+    public void setPuntaje(Puntaje puntaje) {
         this.puntaje = puntaje;
     }
 }

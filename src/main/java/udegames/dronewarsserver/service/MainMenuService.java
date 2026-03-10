@@ -7,14 +7,11 @@ import udegames.dronewarsserver.dto.RankingEntryDTO;
 import udegames.dronewarsserver.dto.RankingResponseDTO;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
 public class MainMenuService {
@@ -22,11 +19,11 @@ public class MainMenuService {
 
     private final Map<String, Lobby> lobbies = new ConcurrentHashMap<>();
     private final Map<String, SavedGame> savedGames = new ConcurrentHashMap<>();
-    private final List<RankingEntryDTO> ranking = new CopyOnWriteArrayList<>();
+    private final RankingService rankingService;
 
-    public MainMenuService() {
+    public MainMenuService(RankingService rankingService) {
+        this.rankingService = rankingService;
         seedSavedGames();
-        seedRanking();
     }
 
     public MenuActionDTO createNewGame(String playerId, String playerName) {
@@ -105,14 +102,9 @@ public class MainMenuService {
     }
 
     public RankingResponseDTO getRanking() {
-        List<RankingEntryDTO> ordered = new ArrayList<>(ranking);
-        ordered.sort(
-                Comparator.comparingInt(RankingEntryDTO::getPoints).reversed()
-                        .thenComparingInt(RankingEntryDTO::getWins).reversed()
-                        .thenComparing(RankingEntryDTO::getPlayerName)
-        );
-
-        return new RankingResponseDTO(Instant.now().toString(), ordered);
+        // Usar el nuevo RankingService que lee de la base de datos
+        List<RankingEntryDTO> ranking = rankingService.getRanking(10);
+        return new RankingResponseDTO(Instant.now().toString(), ranking);
     }
 
     public MenuActionDTO exitGame(String gameId, String playerId) {
@@ -152,12 +144,6 @@ public class MainMenuService {
     private void seedSavedGames() {
         savedGames.put("save-001", new SavedGame("save-001", "game-alpha", "Partida guardada - mapa norte", "2026-03-01T15:40:00Z"));
         savedGames.put("save-002", new SavedGame("save-002", "game-beta", "Partida guardada - mapa sur", "2026-03-03T11:10:00Z"));
-    }
-
-    private void seedRanking() {
-        ranking.add(new RankingEntryDTO("player_1", "Player 1", 8, 2, 1, 25));
-        ranking.add(new RankingEntryDTO("player_2", "Player 2", 6, 4, 1, 19));
-        ranking.add(new RankingEntryDTO("player_3", "Player 3", 4, 5, 2, 14));
     }
 
     private static class Lobby {

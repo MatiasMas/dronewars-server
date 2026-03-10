@@ -15,6 +15,7 @@ public interface PuntajeRepository extends JpaRepository<Puntaje, Long> {
                    p.fechaRegistro AS fechaRegistro
             FROM Puntaje p
             JOIN p.jugador j
+            WHERE p.valor > 0
             ORDER BY p.valor DESC, p.fechaRegistro ASC
             """)
     List<IRankingPuntaje> findRanking(Pageable pageable);
