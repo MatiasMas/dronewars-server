@@ -1,9 +1,9 @@
 package udegames.dronewarsserver.dto;
 
 public class GameEndedDTO {
-    private String winnerTeamId; // "player_1", "player_2" o null (empate)
+    private String winnerTeamId;
     private boolean draw;
-    private String reason; // ALL_UNITS_DESTROYED | CARRIER_DESTROYED_AND_NO_RESOURCES | CARRIER_DESTROYED_TIMEOUT_DRAW
+    private String reason;
 
     public GameEndedDTO(String winnerTeamId, boolean draw, String reason) {
         this.winnerTeamId = winnerTeamId;

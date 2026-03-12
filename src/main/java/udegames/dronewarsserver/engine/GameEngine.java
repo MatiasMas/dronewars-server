@@ -81,7 +81,7 @@ public class GameEngine {
         this.currentTick = 0;
     }
 
-    /*
+    /**
      * Inicia el juego, crea jugadores y unidades
      */
     public void create() {
@@ -153,7 +153,7 @@ public class GameEngine {
         }
     }
 
-    /*
+    /**
      * Inicia los ticks del juego, simula los frames, definidos en TICK_INTERVAL_MS.
      * Llama al metodo update que se encarga de los eventos en tiempo real.
      */
@@ -174,7 +174,7 @@ public class GameEngine {
         );
     }
 
-    /*
+    /**
      * Se ejecuta multiples veces por segundo.
      * Se encarga de verificar colisiones, actualizar posiciones, etc.
      */
@@ -190,7 +190,6 @@ public class GameEngine {
 
 //        logger.debug("[UPDATE] Tic: {}", currentTick);
 
-        // Colocar aqui todo lo que sea relacionado con colisiones, posiciones, combustible, etc.
         actualizarRecargaAutomatica();
         updateBombProjectiles();
         updateMissileProjectiles();
@@ -203,7 +202,7 @@ public class GameEngine {
         evaluarFinDePartida();
     }
 
-    /*
+    /**
      * Detiene el motor del juego, detiene los ticks y apaga el executor
      */
     private void stop() {
@@ -398,7 +397,7 @@ public class GameEngine {
                 || posicion.getY() > MAX_Y;
     }
 
-    // --------------- Creacion de entidades para el juego ---------------
+    // Creacion de entidades para el juego
     private void createPlayers() {
         Player player1 = new Player("Fuerzas Aereas");
         Player player2 = new Player("Fuerzas Navales");
@@ -425,7 +424,7 @@ public class GameEngine {
         Player player1 = players.get(0);
         Player player2 = players.get(1);
 
-        // Player 1: drones aéreos, lado izquierdo del mapa. 12 drones + 1 portadrones aéreo.
+        // Player 1: drones aéreos, lado izquierdo del mapa. 12 drones + 1 portadrones aereo.
         createPlayer1AerialUnits(player1);
         // Player 2: drones navales, lado derecho del mapa. 6 drones + 1 portadrones naval.
         createPlayer2NavalUnits(player2);
@@ -447,7 +446,7 @@ public class GameEngine {
         logger.debug("AerialCarrier creado: {} en ({}, {}, {})", carrier.getId(), posCarrier.getX(), posCarrier.getY(), posCarrier.getZ());
 
         String carrierId = carrier.getId();
-        // 12 drones en formación 4 filas x 3 columnas, separados para verse por separado
+        // 12 drones en formacion 4 filas x 3 columnas, separados para verse por separado
         int cols = 3;
         int rows = 4;
         for (int row = 0; row < rows; row++) {
@@ -476,7 +475,7 @@ public class GameEngine {
         logger.debug("NavalCarrier creado: {} en ({}, {}, {})", carrier.getId(), posCarrier.getX(), posCarrier.getY(), posCarrier.getZ());
 
         String carrierId = carrier.getId();
-        // 6 drones en formación 2 filas x 3 columnas
+        // 6 drones en formacion 2 filas x 3 columnas
         int cols = 3;
         int rows = 2;
         for (int row = 0; row < rows; row++) {

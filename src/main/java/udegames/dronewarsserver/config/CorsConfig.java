@@ -23,7 +23,7 @@ public class CorsConfig {
         // Permitir todos los headers
         config.addAllowedHeader("*");
         
-        // Permitir todos los métodos HTTP
+        // Permitir todos los metodos HTTP
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         
         source.registerCorsConfiguration("/api/**", config);

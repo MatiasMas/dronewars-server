@@ -34,7 +34,7 @@ public class GameState {
         return gameId;
     }
 
-    // ------------ Gestion de jugadores ------------
+    //Gestion de jugadores
     public void addPlayer(Player player) {
         players.put(player.getId(), player);
     }
@@ -47,7 +47,7 @@ public class GameState {
         return new ArrayList<>(players.values());
     }
 
-    // ------------ Gestion de unidades ------------
+    // Gestion de unidades
     public void addUnit(Unit unit) {
         units.put(unit.getId(), unit);
 
@@ -117,7 +117,7 @@ public class GameState {
         return new ArrayList<>(missileProjectiles.values());
     }
 
-    // ------------ Gestion de movimiento ------------
+    // Gestion de movimiento
     public void setUnitMovement(String unitId, Position target, float speedPerSecond) {
         unitMovements.put(unitId, new UnitMovement(target, speedPerSecond));
     }
@@ -130,7 +130,7 @@ public class GameState {
         return unitMovements;
     }
 
-    // ------------ Validaciones ------------
+    // Validaciones
     public boolean doesUnitBelongsToPlayer(String unitId, String playerId) {
         Unit unit = getUnitById(unitId);
 
@@ -147,7 +147,7 @@ public class GameState {
         return players.containsKey(playerId);
     }
 
-    // ------------ Gestion estado servidor  ------------
+    // Gestion estado servidor
     public boolean isPartidaPausada() {
         return partidaPausada;
     }

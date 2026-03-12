@@ -7,12 +7,10 @@ public interface IMissileService {
 
     resultadoDisparoMisil lanzarMisil(String unidadId, String objetivoId, Float objetivoX, Float objetivoY);
 
-    // Compatibilidad con la firma anterior.
     default boolean puedeDisparar(String unidadId, String jugadorId, String objetivoId) {
         return puedeDisparar(unidadId, jugadorId, objetivoId, null, null);
     }
 
-    // Compatibilidad con la firma anterior.
     default resultadoDisparoMisil lanzarMisil(String unidadId, String objetivoId) {
         return lanzarMisil(unidadId, objetivoId, null, null);
     }

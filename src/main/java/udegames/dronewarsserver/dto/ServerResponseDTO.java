@@ -1,15 +1,6 @@
 package udegames.dronewarsserver.dto;
 
-/**
- * ServerResponseDTO
- * Standard format for all server responses to the client
- * <p>
- * Example Structure:
- * {
- * "type": "EVENT_NAME",
- * "payload": { ...data... }
- * }
- */
+
 public class ServerResponseDTO {
     private String type;
     private Object payload;
