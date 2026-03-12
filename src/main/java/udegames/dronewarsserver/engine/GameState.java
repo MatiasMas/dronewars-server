@@ -1,10 +1,10 @@
 package udegames.dronewarsserver.engine;
 
-import udegames.dronewarsserver.domain.model.Player;
-import udegames.dronewarsserver.domain.model.BombProjectile;
-import udegames.dronewarsserver.domain.model.MissileProjectile;
-import udegames.dronewarsserver.domain.model.Position;
-import udegames.dronewarsserver.domain.model.Unit;
+import udegames.dronewarsserver.domain.entity.Player;
+import udegames.dronewarsserver.domain.entity.BombProjectile;
+import udegames.dronewarsserver.domain.entity.MissileProjectile;
+import udegames.dronewarsserver.domain.entity.Position;
+import udegames.dronewarsserver.domain.entity.Unit;
 import udegames.dronewarsserver.engine.movement.UnitMovement;
 
 import java.util.*;
@@ -34,7 +34,7 @@ public class GameState {
         return gameId;
     }
 
-    // ------------ Gestion de jugadores ------------
+    //Gestion de jugadores
     public void addPlayer(Player player) {
         players.put(player.getId(), player);
     }
@@ -47,7 +47,7 @@ public class GameState {
         return new ArrayList<>(players.values());
     }
 
-    // ------------ Gestion de unidades ------------
+    // Gestion de unidades
     public void addUnit(Unit unit) {
         units.put(unit.getId(), unit);
 
@@ -117,7 +117,7 @@ public class GameState {
         return new ArrayList<>(missileProjectiles.values());
     }
 
-    // ------------ Gestion de movimiento ------------
+    // Gestion de movimiento
     public void setUnitMovement(String unitId, Position target, float speedPerSecond) {
         unitMovements.put(unitId, new UnitMovement(target, speedPerSecond));
     }
@@ -130,7 +130,7 @@ public class GameState {
         return unitMovements;
     }
 
-    // ------------ Validaciones ------------
+    // Validaciones
     public boolean doesUnitBelongsToPlayer(String unitId, String playerId) {
         Unit unit = getUnitById(unitId);
 
@@ -147,12 +147,25 @@ public class GameState {
         return players.containsKey(playerId);
     }
 
-    // ------------ Gestion estado servidor  ------------
+    // Gestion estado servidor
     public boolean isPartidaPausada() {
         return partidaPausada;
     }
 
     public void setPartidaPausada(boolean partidaPausada) {
         this.partidaPausada = partidaPausada;
+    }
+
+    /**
+     * Resetea el estado en memoria para cargar una partida desde la base de datos.
+     * Mantiene el mismo gameId del servidor.
+     */
+    public void resetState() {
+        players.clear();
+        units.clear();
+        bombProjectiles.clear();
+        missileProjectiles.clear();
+        unitMovements.clear();
+        partidaPausada = false;
     }
 }

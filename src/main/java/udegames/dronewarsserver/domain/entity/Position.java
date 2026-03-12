@@ -1,4 +1,4 @@
-package udegames.dronewarsserver.domain.model;
+package udegames.dronewarsserver.domain.entity;
 
 public class Position {
     private float x;

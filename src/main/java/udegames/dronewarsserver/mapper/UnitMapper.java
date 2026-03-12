@@ -1,15 +1,21 @@
 package udegames.dronewarsserver.mapper;
 
-import udegames.dronewarsserver.domain.model.Drone;
-import udegames.dronewarsserver.domain.model.Unit;
+import udegames.dronewarsserver.domain.entity.Drone;
+import udegames.dronewarsserver.domain.entity.DroneCarrier;
+import udegames.dronewarsserver.domain.entity.Unit;
 import udegames.dronewarsserver.dto.UnitSelectionDTO;
 
 public class UnitMapper {
 
     public static UnitSelectionDTO toSelectionDTO(Unit unit) {
         float combustible = 0f;
+        int municionDisponible = 0;
         if(unit instanceof Drone dron){
             combustible = dron.getCombustible();
+            municionDisponible = dron.getAmmo();
+        }
+        if (unit instanceof DroneCarrier carrier) {
+            municionDisponible = carrier.getAvailableAmmoSupply();
         }
         return new UnitSelectionDTO(
                 unit.getId(),
@@ -18,7 +24,8 @@ public class UnitMapper {
                 unit.getPosition().getY(),
                 unit.getPosition().getZ(),
                 unit.getHealth(),
-                combustible
+                combustible,
+                municionDisponible
         );
     }
 }

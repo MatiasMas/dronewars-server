@@ -1,4 +1,4 @@
-package udegames.dronewarsserver.domain.model;
+package udegames.dronewarsserver.domain.entity;
 
 import udegames.dronewarsserver.domain.enums.DroneState;
 import udegames.dronewarsserver.domain.enums.UnitType;
@@ -37,9 +37,17 @@ public abstract class Drone extends Unit {
         return ammo;
     }
 
+    public void setAmmo(int ammo) {
+        this.ammo = Math.max(0, Math.min(ammo, maxAmmo));
+    }
+
     // Maximo permitido para la unidad (segun el jugador).
     public int getMaxAmmo() {
         return maxAmmo;
+    }
+
+    public void setCombustible(float combustible) {
+        this.fuel = Math.max(0f, Math.min(combustible, maxFuel));
     }
 
     public DroneState getState() {
@@ -56,6 +64,22 @@ public abstract class Drone extends Unit {
 
     public void reload() {
         this.ammo = maxAmmo;
+    }
+
+    // Agrega municion parcial, sin superar el maximo.
+    public int reloadPartial(int amount) {
+        if (amount <= 0) {
+            return 0;
+        }
+
+        int missingAmmo = maxAmmo - ammo;
+        if (missingAmmo <= 0) {
+            return 0;
+        }
+
+        int loaded = Math.min(amount, missingAmmo);
+        ammo += loaded;
+        return loaded;
     }
 
     // Consume municion si hay disponible.

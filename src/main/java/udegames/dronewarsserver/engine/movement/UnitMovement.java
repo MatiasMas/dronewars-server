@@ -1,6 +1,6 @@
 package udegames.dronewarsserver.engine.movement;
 
-import udegames.dronewarsserver.domain.model.Position;
+import udegames.dronewarsserver.domain.entity.Position;
 
 public class UnitMovement {
     // Destino actual de la unidad (posicion objetivo).

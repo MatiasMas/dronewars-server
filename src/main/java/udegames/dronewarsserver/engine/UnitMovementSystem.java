@@ -1,8 +1,8 @@
 package udegames.dronewarsserver.engine;
 
-import udegames.dronewarsserver.domain.model.Drone;
-import udegames.dronewarsserver.domain.model.Position;
-import udegames.dronewarsserver.domain.model.Unit;
+import udegames.dronewarsserver.domain.entity.Drone;
+import udegames.dronewarsserver.domain.entity.Position;
+import udegames.dronewarsserver.domain.entity.Unit;
 import udegames.dronewarsserver.engine.movement.UnitMovement;
 
 public class UnitMovementSystem {
@@ -78,23 +78,19 @@ public class UnitMovementSystem {
                 float movY = newPosition.getY() - current.getY();
                 float movZ = newPosition.getZ() - current.getZ();
                 float distancia = (float) Math.sqrt(movX * movX + movY * movY + movZ * movZ);
-                // A mayor altura, menor consumo extra por altura.
-                float consumoPorAltura = CONSUMO_COMBUSTIBLE_POR_UNIDAD + (10f - newPosition.getZ());
+                // A mayor altura, mayor consumo extra por altura.
+                float consumoPorAltura = CONSUMO_COMBUSTIBLE_POR_UNIDAD + (1 * newPosition.getZ());
                 boolean quedaCombustible = drone.consumirCombustible((int) (distancia + consumoPorAltura));
 
                 if(!quedaCombustible){
-                    drone.inhabilitarPorCombustible();
+                    // Mata al dron
+                    drone.applyDamage(drone.getHealth());
+
+                    // Limpia movimiento pendiente
                     gameState.clearUnitMovement(unitId);
 
-                    // Forzamos el descenso cuando se queda sin combustible.
-                    Position posicionActual = unit.getPosition();
-                    Position destinoForzado = new Position(posicionActual.getX(), posicionActual.getY(), ALTURA_FORZADA_COMBUSTIBLE);
-
-                    if (Math.abs(posicionActual.getZ() - ALTURA_FORZADA_COMBUSTIBLE) > positionEpsilon) {
-                        gameState.setUnitMovement(unitId, destinoForzado, 20f);
-                    } else {
-                        unit.setPosition(destinoForzado);
-                    }
+                    // Lo elimina del estado (desaparece)
+                    gameState.removeUnit(unitId);
                 }
             }
         }

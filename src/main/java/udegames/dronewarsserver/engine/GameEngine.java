@@ -2,23 +2,22 @@ package udegames.dronewarsserver.engine;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import udegames.dronewarsserver.domain.model.AerialCarrier;
-import udegames.dronewarsserver.domain.model.AerialDrone;
-import udegames.dronewarsserver.domain.model.BombProjectile;
-import udegames.dronewarsserver.domain.model.Drone;
-import udegames.dronewarsserver.domain.model.DroneCarrier;
-import udegames.dronewarsserver.domain.model.MissileProjectile;
-import udegames.dronewarsserver.domain.model.Player;
-import udegames.dronewarsserver.domain.model.Position;
+import udegames.dronewarsserver.domain.entity.AerialCarrier;
+import udegames.dronewarsserver.domain.entity.AerialDrone;
+import udegames.dronewarsserver.domain.entity.BombProjectile;
+import udegames.dronewarsserver.domain.entity.Drone;
+import udegames.dronewarsserver.domain.entity.DroneCarrier;
+import udegames.dronewarsserver.domain.entity.MissileProjectile;
+import udegames.dronewarsserver.domain.entity.Player;
+import udegames.dronewarsserver.domain.entity.Position;
 import udegames.dronewarsserver.dto.*;
 import udegames.dronewarsserver.service.GameStateSyncService;
-import udegames.dronewarsserver.domain.model.Unit;
+import udegames.dronewarsserver.domain.entity.Unit;
 import udegames.dronewarsserver.mapper.UnitMapper;
 import udegames.dronewarsserver.websocket.CommunicationEvents;
 import udegames.dronewarsserver.websocket.GameWebSocketHandler;
-import udegames.dronewarsserver.domain.model.DroneCarrier;
-import udegames.dronewarsserver.domain.model.NavalCarrier;
-import udegames.dronewarsserver.domain.model.NavalDrone;
+import udegames.dronewarsserver.domain.entity.NavalCarrier;
+import udegames.dronewarsserver.domain.entity.NavalDrone;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +30,7 @@ public class GameEngine {
     private final GameStateSyncService gameStateSyncService;
     private final UnitMovementSystem movementSystem;
     private final GameWebSocketHandler gameWebSocketHandler;
-    private final ScheduledExecutorService executor;
+    private ScheduledExecutorService executor;
     private volatile boolean running;
     private long currentTick;
 
@@ -47,7 +46,7 @@ public class GameEngine {
     private static final int MUNICION_MAX_JUGADOR_1 = 1;
     private static final int MUNICION_MAX_JUGADOR_2 = 2;
     private static final int DANO_MISIL = 1;
-    private static final float RANGO_EXPLOSION_MISIL = 16f;
+    private static final float RANGO_EXPLOSION_MISIL = 32f;
     private static final float MIN_X = 0f;
     private static final float MAX_X = 6700f;
     private static final float MIN_Y = 0f;
@@ -82,7 +81,7 @@ public class GameEngine {
         this.currentTick = 0;
     }
 
-    /*
+    /**
      * Inicia el juego, crea jugadores y unidades
      */
     public void create() {
@@ -95,7 +94,66 @@ public class GameEngine {
         logger.info("Jugadores: {}", gameState.getPlayers().size());
     }
 
-    /*
+    /**
+     * Reinicia el estado del juego a una partida limpia desde cero.
+     * Limpia el GameState actual y vuelve a crear jugadores y unidades.
+     */
+    public void resetAndCreate() {
+        logger.info("[RESET] Reiniciando juego a estado inicial limpio");
+        gameState.resetState();
+        gameFinished = false;
+        tsCarrierDestroyedP1 = null;
+        tsCarrierDestroyedP2 = null;
+        create();
+        
+        // Si el motor estaba detenido, reiniciarlo
+        if (!running) {
+            restartEngine();
+        }
+    }
+    
+    /**
+     * Reinicia el motor del juego si estaba detenido.
+     * Crea un nuevo executor y comienza los ticks.
+     */
+    private void restartEngine() {
+        if (running) {
+            return;
+        }
+        
+        // Crear nuevo executor si el anterior fue apagado
+        if (executor.isShutdown()) {
+            executor = Executors.newSingleThreadScheduledExecutor();
+        }
+        
+        running = true;
+        currentTick = 0;
+        logger.info("[RESTART] Reiniciando motor del juego");
+        
+        executor.scheduleAtFixedRate(
+                this::update,
+                0,
+                TICK_INTERVAL_MS,
+                TimeUnit.MILLISECONDS
+        );
+    }
+    
+    /**
+     * Reinicia el motor después de cargar una partida guardada.
+     * Limpia flags de fin de partida y reinicia el executor si es necesario.
+     */
+    public void restartAfterLoad() {
+        logger.info("[RESTART_LOAD] Reiniciando motor después de cargar partida");
+        gameFinished = false;
+        tsCarrierDestroyedP1 = null;
+        tsCarrierDestroyedP2 = null;
+        
+        if (!running) {
+            restartEngine();
+        }
+    }
+
+    /**
      * Inicia los ticks del juego, simula los frames, definidos en TICK_INTERVAL_MS.
      * Llama al metodo update que se encarga de los eventos en tiempo real.
      */
@@ -116,7 +174,7 @@ public class GameEngine {
         );
     }
 
-    /*
+    /**
      * Se ejecuta multiples veces por segundo.
      * Se encarga de verificar colisiones, actualizar posiciones, etc.
      */
@@ -132,7 +190,6 @@ public class GameEngine {
 
 //        logger.debug("[UPDATE] Tic: {}", currentTick);
 
-        // Colocar aqui todo lo que sea relacionado con colisiones, posiciones, combustible, etc.
         actualizarRecargaAutomatica();
         updateBombProjectiles();
         updateMissileProjectiles();
@@ -145,7 +202,7 @@ public class GameEngine {
         evaluarFinDePartida();
     }
 
-    /*
+    /**
      * Detiene el motor del juego, detiene los ticks y apaga el executor
      */
     private void stop() {
@@ -340,10 +397,10 @@ public class GameEngine {
                 || posicion.getY() > MAX_Y;
     }
 
-    // --------------- Creacion de entidades para el juego ---------------
+    // Creacion de entidades para el juego
     private void createPlayers() {
-        Player player1 = new Player("Player 1");
-        Player player2 = new Player("Player 2");
+        Player player1 = new Player("Fuerzas Aereas");
+        Player player2 = new Player("Fuerzas Navales");
 
         player1.setId("player_1");
         player2.setId("player_2");
@@ -367,7 +424,7 @@ public class GameEngine {
         Player player1 = players.get(0);
         Player player2 = players.get(1);
 
-        // Player 1: drones aéreos, lado izquierdo del mapa. 12 drones + 1 portadrones aéreo.
+        // Player 1: drones aéreos, lado izquierdo del mapa. 12 drones + 1 portadrones aereo.
         createPlayer1AerialUnits(player1);
         // Player 2: drones navales, lado derecho del mapa. 6 drones + 1 portadrones naval.
         createPlayer2NavalUnits(player2);
@@ -389,7 +446,7 @@ public class GameEngine {
         logger.debug("AerialCarrier creado: {} en ({}, {}, {})", carrier.getId(), posCarrier.getX(), posCarrier.getY(), posCarrier.getZ());
 
         String carrierId = carrier.getId();
-        // 12 drones en formación 4 filas x 3 columnas, separados para verse por separado
+        // 12 drones en formacion 4 filas x 3 columnas, separados para verse por separado
         int cols = 3;
         int rows = 4;
         for (int row = 0; row < rows; row++) {
@@ -397,7 +454,7 @@ public class GameEngine {
                 float dx = col * separacion;
                 float dy = row * separacion;
                 Position pos = new Position(baseX + dx, baseY + dy, z);
-                AerialDrone drone = new AerialDrone(carrierId, 4500f, municionMaxima, player1.getId(), 1, pos);
+                AerialDrone drone = new AerialDrone(carrierId, 3500f, municionMaxima, player1.getId(), 1, pos);
                 gameState.addUnit(drone);
                 logger.debug("AerialDrone creado: {} en ({}, {}, {})", drone.getId(), pos.getX(), pos.getY(), pos.getZ());
             }
@@ -413,12 +470,12 @@ public class GameEngine {
         float separacion = 80f;
 
         Position posCarrier = new Position(baseX + separacion, baseY - separacion, z);
-        NavalCarrier carrier = new NavalCarrier(6, player2.getId(), 6, posCarrier);
+        NavalCarrier carrier = new NavalCarrier(6, player2.getId(), 3, posCarrier);
         gameState.addUnit(carrier);
         logger.debug("NavalCarrier creado: {} en ({}, {}, {})", carrier.getId(), posCarrier.getX(), posCarrier.getY(), posCarrier.getZ());
 
         String carrierId = carrier.getId();
-        // 6 drones en formación 2 filas x 3 columnas
+        // 6 drones en formacion 2 filas x 3 columnas
         int cols = 3;
         int rows = 2;
         for (int row = 0; row < rows; row++) {
@@ -426,7 +483,7 @@ public class GameEngine {
                 float dx = -col * separacion;
                 float dy = row * separacion;
                 Position pos = new Position(baseX + dx, baseY + dy, z);
-                NavalDrone drone = new NavalDrone(carrierId, 4500f, municionMaxima, player2.getId(), 1, pos);
+                NavalDrone drone = new NavalDrone(carrierId, 8000f, municionMaxima, player2.getId(), 1, pos);
                 gameState.addUnit(drone);
                 logger.debug("NavalDrone creado: {} en ({}, {}, {})", drone.getId(), pos.getX(), pos.getY(), pos.getZ());
             }
@@ -457,12 +514,17 @@ public class GameEngine {
         EstadoEquipo e1 = calcularEstadoEquipo(ID_JUGADOR_1);
         EstadoEquipo e2 = calcularEstadoEquipo(ID_JUGADOR_2);
 
-        // RF25.a
-        if (!e1.tieneUnidadesVivas) {
+        // RF25.a: la victoria se define por destruccion total de drones enemigos,
+        // sin requerir destruccion del carrier.
+        if (e1.dronesVivos == 0 && e2.dronesVivos == 0) {
+            emitirFinDePartida(null, true, FIN_A);
+            return;
+        }
+        if (e1.dronesVivos == 0) {
             emitirFinDePartida(ID_JUGADOR_2, false, FIN_A);
             return;
         }
-        if (!e2.tieneUnidadesVivas) {
+        if (e2.dronesVivos == 0) {
             emitirFinDePartida(ID_JUGADOR_1, false, FIN_A);
             return;
         }
@@ -577,7 +639,7 @@ public class GameEngine {
                 continue;
             }
 
-            boolean hayPortadronesCerca = false;
+            DroneCarrier carrierEnRango = null;
             for(Unit posibleCarrier : gameState.getUnits()){
                 if(!(posibleCarrier instanceof DroneCarrier)){
                     continue;
@@ -595,20 +657,32 @@ public class GameEngine {
                 float rangoCuadrado = RANGO_RECARGA_AUTOMATICA * RANGO_RECARGA_AUTOMATICA;
 
                 if(distanciaCuadrada <= rangoCuadrado){
-                    hayPortadronesCerca = true;
+                    carrierEnRango = (DroneCarrier) posibleCarrier;
                     break;
                 }
             }
-            if(!hayPortadronesCerca){
+            if(carrierEnRango == null){
                 continue;
             }
-            //Recargamos y notificamos client
-            dron.reload();
-            dron.refuel();
+
+            int ammoAntes = dron.getAmmo();
+            float combustibleAntes = dron.getCombustible();
+
+            if (faltaMunicion) {
+                int ammoFaltante = dron.getMaxAmmo() - dron.getAmmo();
+                int municionOtorgada = carrierEnRango.consumeAmmoSupply(ammoFaltante);
+                dron.reloadPartial(municionOtorgada);
+            }
+            if (faltaCombustible) {
+                dron.refuel();
+            }
             dron.habilitarLuegoRecarga();
 
-            AmmoReloadedDTO payload = new AmmoReloadedDTO(dron.getId(), dron.getAmmo(), dron.getCombustible());
-            gameWebSocketHandler.broadcastToAll(CommunicationEvents.ServerToClientEvents.MUNICION_RECARGADA, payload);
+            boolean huboCambios = dron.getAmmo() != ammoAntes || dron.getCombustible() != combustibleAntes;
+            if (huboCambios) {
+                AmmoReloadedDTO payload = new AmmoReloadedDTO(dron.getId(), dron.getAmmo(), dron.getCombustible());
+                gameWebSocketHandler.broadcastToAll(CommunicationEvents.ServerToClientEvents.MUNICION_RECARGADA, payload);
+            }
         }
     }
 

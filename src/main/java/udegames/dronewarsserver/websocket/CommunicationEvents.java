@@ -1,14 +1,11 @@
 package udegames.dronewarsserver.websocket;
 
-/*
- * CommunicationEvents define todos los eventos que se transmiten entre cliente y servidor.
- * El cliente envia un evento; el servidor procesa el evento con el nombre usado aqui.
- *
- * ServerToClient: Cuando el servidor envia un evento al cliente
- * ClientToServer: Cuando el cliente envia un evento al servidor
- */
+
+//CommunicationEvents define todos los eventos que se transmiten entre cliente y servidor.
+
 public class CommunicationEvents {
 
+    //ClientToServer: Cuando el cliente envia un evento al servidor
     public static class ClientToServerEvents {
         public static final String REGISTER_PLAYER = "REGISTER_PLAYER";
         public static final String GET_PLAYER_UNITS = "GET_PLAYER_UNITS";
@@ -25,14 +22,18 @@ public class CommunicationEvents {
         public static final String LOAD_SAVED_GAME = "LOAD_SAVED_GAME";
         public static final String GET_RANKING = "GET_RANKING";
         public static final String EXIT_GAME = "EXIT_GAME";
+        public static final String REQUEST_AVAILABLE_PLAYERS = "REQUEST_AVAILABLE_PLAYERS";
 
         public static final String SET_GAME_PAUSED = "SET_GAME_PAUSED";
         public static final String REQUEST_SAVE_GAME = "REQUEST_SAVE_GAME";
+        public static final String RESET_GAME = "RESET_GAME";
+        public static final String SAVE_WINNER_SCORE = "SAVE_WINNER_SCORE";
         // Futuro
         // public static final String REQUEST_MOVE_UNIT = "REQUEST_MOVE_UNIT";
         // public static final String REQUEST_ATTACK = "REQUEST_ATTACK";
     }
 
+    //ServerToClient: Cuando el servidor envia un evento al cliente
     public static class ServerToClientEvents {
         public static final String PLAYER_REGISTERED = "PLAYER_REGISTERED";
         public static final String UNITS_RECEIVED = "UNITS_RECEIVED";

@@ -1,43 +1,42 @@
 package udegames.dronewarsserver.dto;
 
+import java.time.Instant;
+
 public class RankingEntryDTO {
-    private String playerId;
-    private String playerName;
-    private int wins;
-    private int losses;
-    private int draws;
-    private int points;
+    private String nickname;
+    private int score;
+    private Instant timestamp;
 
-    public RankingEntryDTO(String playerId, String playerName, int wins, int losses, int draws, int points) {
-        this.playerId = playerId;
-        this.playerName = playerName;
-        this.wins = wins;
-        this.losses = losses;
-        this.draws = draws;
-        this.points = points;
+    public RankingEntryDTO() {
     }
 
-    public String getPlayerId() {
-        return playerId;
+    public RankingEntryDTO(String nickname, int score, Instant timestamp) {
+        this.nickname = nickname;
+        this.score = score;
+        this.timestamp = timestamp;
     }
 
-    public String getPlayerName() {
-        return playerName;
+    public String getNickname() {
+        return nickname;
     }
 
-    public int getWins() {
-        return wins;
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
     }
 
-    public int getLosses() {
-        return losses;
+    public int getScore() {
+        return score;
     }
 
-    public int getDraws() {
-        return draws;
+    public void setScore(int score) {
+        this.score = score;
     }
 
-    public int getPoints() {
-        return points;
+    public Instant getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Instant timestamp) {
+        this.timestamp = timestamp;
     }
 }
