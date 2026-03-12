@@ -187,9 +187,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    /*
-     * Envia lista de jugadores disponibles al cliente (temporal, se elimina con lobby)
-     */
+
+    // Envia lista de jugadores disponibles al cliente (temporal, se elimina con lobby)
+
     private void sendAvailablePlayers(WebSocketSession session) {
         try {
             List<AvailablePlayerDTO> availablePlayers = gameState.getPlayers().stream()
@@ -208,9 +208,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    /*
-     * Broadcast lista de jugadores disponibles a todos los clientes conectados
-     */
+
+     //Lista de jugadores disponibles a todos los clientes conectados
+
     private void broadcastAvailablePlayers() {
         List<AvailablePlayerDTO> availablePlayers = gameState.getPlayers().stream()
                 .map(player -> new AvailablePlayerDTO(
@@ -571,14 +571,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    /**
-     * Envia respuesta estandar al cliente
-     * Formato: { type: "...", payload: {...} }
-     *
-     * @param session   sesion WebSocket
-     * @param eventType Tipo de evento (usar CommunicationEvents)
-     * @param payload   Datos a enviar
-     */
+
     private void sendResponse(WebSocketSession session, String eventType, Object payload) throws IOException {
         sendToSession(session, eventType, payload);
     }
@@ -832,10 +825,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    /**
-     * Maneja la solicitud de reiniciar el juego a un estado limpio.
-     * Limpia el GameState, recrea jugadores y unidades, y limpia registros de sesiones.
-     */
+
+     //Maneja la solicitud de reiniciar el juego a un estado limpio.
+     //Limpia el GameState, recrea jugadores y unidades, y limpia registros de sesiones.
+
     private void handleResetGame(WebSocketSession session) throws IOException {
         try {
             logger.info("Recibida solicitud de RESET_GAME desde la sesion {}", session.getId());
@@ -891,7 +884,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             
             logger.info("Puntaje guardado: nickname={}, score={}, playerId={}", nickname, score, playerId);
             
-            // No enviar respuesta al cliente - el guardado es silencioso
+            // No enviar respuesta al cliente
         } catch (Exception e) {
             logger.error("Error al guardar puntaje del ganador", e);
             sendErrorMessage(session, "Error al guardar puntaje: " + e.getMessage());

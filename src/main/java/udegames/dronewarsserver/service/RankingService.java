@@ -37,9 +37,9 @@ public class RankingService {
         this.equipoRepository = equipoRepository;
     }
 
-    /**
-     * Obtiene el ranking de puntajes ordenado por valor descendente y fecha ascendente
-     */
+
+    // Obtiene el ranking de puntajes ordenado por valor descendente y fecha ascendente
+
     public List<RankingEntryDTO> getRanking(int limit) {
         List<IRankingPuntaje> rankingRaw = puntajeRepository.findRanking(PageRequest.of(0, limit));
         
@@ -52,13 +52,9 @@ public class RankingService {
                 .toList();
     }
 
-    /**
-     * Guarda el puntaje del ganador cuando termina una partida
-     * @param nickname Siglas/nombre del jugador (3 letras)
-     * @param score Puntaje obtenido
-     * @param playerId ID del jugador (player_1 o player_2)
-     * @param gameId ID del juego
-     */
+
+    // Guarda el puntaje del ganador cuando termina una partida
+
     @Transactional
     public void saveWinnerScore(String nickname, int score, String playerId, String gameId) {
         // Obtener equipos de la base de datos (son requeridos por la restricción NOT NULL)
@@ -87,7 +83,7 @@ public class RankingService {
         perdedor.setPartida(partida);
         perdedor.setEquipo(equipoAereo); // Asignar equipo para cumplir NOT NULL
 
-        // IMPORTANTE: Agregar jugadores a la partida ANTES de guardar
+        // Agregar jugadores a la partida ANTES de guardar
         // para que pase la validación @Size(min = 2, max = 2)
         partida.getJugadores().add(ganador);
         partida.getJugadores().add(perdedor);
