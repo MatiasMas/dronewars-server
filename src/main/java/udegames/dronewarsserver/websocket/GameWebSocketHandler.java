@@ -739,6 +739,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                     int municionDisponible = 0;
                     if (unit instanceof Drone dron) {
                         combustible = dron.getCombustible();
+                        municionDisponible = dron.getAmmo();
                     }
                     if (unit instanceof DroneCarrier carrier) {
                         municionDisponible = carrier.getAvailableAmmoSupply();
@@ -853,6 +854,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                         int municionDisponible = 0;
                         if (unit instanceof Drone dron) {
                             combustible = dron.getCombustible();
+                            municionDisponible = dron.getAmmo();
                         }
                         if (unit instanceof DroneCarrier carrier) {
                             municionDisponible = carrier.getAvailableAmmoSupply();

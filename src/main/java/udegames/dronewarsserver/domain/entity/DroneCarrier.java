@@ -30,6 +30,10 @@ public abstract class DroneCarrier extends Unit {
         return availableAmmoSupply;
     }
 
+    public synchronized void setAvailableAmmoSupply(int ammoSupply) {
+        this.availableAmmoSupply = Math.max(ammoSupply, 0);
+    }
+
     // Consume municion del stock del carrier para recargar drones.
     public synchronized int consumeAmmoSupply(int requestedAmount) {
         if (requestedAmount <= 0 || availableAmmoSupply <= 0) {

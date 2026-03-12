@@ -27,6 +27,7 @@ public class GameStateSyncService {
                     int municionDisponible = 0;
                     if (unit instanceof Drone dron) {
                         combustible = dron.getCombustible();
+                        municionDisponible = dron.getAmmo();
                     }
                     if (unit instanceof DroneCarrier carrier) {
                         municionDisponible = carrier.getAvailableAmmoSupply();

@@ -3,6 +3,7 @@ package udegames.dronewarsserver.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import udegames.dronewarsserver.domain.entity.*;
+import udegames.dronewarsserver.domain.enums.DroneState;
 import udegames.dronewarsserver.domain.enums.UnitType;
 import udegames.dronewarsserver.domain.model.*;
 import udegames.dronewarsserver.engine.GameState;
@@ -116,6 +117,9 @@ public class PersistenciaPartidaService {
             if (unit instanceof Drone drone) {
                 entidad.setCombustible(Math.round(drone.getCombustible()));
                 entidad.setMunicion(drone.getAmmo());
+            } else if (unit instanceof DroneCarrier carrier) {
+                entidad.setCombustible(0);
+                entidad.setMunicion(carrier.getAvailableAmmoSupply());
             } else {
                 entidad.setCombustible(0);
                 entidad.setMunicion(0);
@@ -229,22 +233,24 @@ public class PersistenciaPartidaService {
     private void cargarPortadrones(GameState gameState, String ownerPlayerId, List<Unidad> unidades, Map<Long, Unit> out) {
         for (Unidad u : unidades) {
             if (u instanceof PortadronNaval pn) {
-                Unit carrier = new NavalCarrier(
+                NavalCarrier carrier = new NavalCarrier(
                         6,
                         ownerPlayerId,
                         pn.getIntegridad(),
                         new Position(pn.getCoordenadaX(), pn.getCoordenadaY(), pn.getCoordenadaZ() == null ? 0f : pn.getCoordenadaZ())
                 );
+                carrier.setAvailableAmmoSupply(pn.getMunicion());
                 carrier.setDestroyed(pn.isDestruida());
                 gameState.addUnit(carrier);
                 out.put(pn.getId(), carrier);
             } else if (u instanceof PortadronAereo pa) {
-                Unit carrier = new AerialCarrier(
+                AerialCarrier carrier = new AerialCarrier(
                         12,
                         ownerPlayerId,
                         pa.getIntegridad(),
                         new Position(pa.getCoordenadaX(), pa.getCoordenadaY(), pa.getCoordenadaZ() == null ? 0f : pa.getCoordenadaZ())
                 );
+                carrier.setAvailableAmmoSupply(pa.getMunicion());
                 carrier.setDestroyed(pa.isDestruida());
                 gameState.addUnit(carrier);
                 out.put(pa.getId(), carrier);
@@ -259,8 +265,8 @@ public class PersistenciaPartidaService {
                 String carrierIdDominio = carrier == null ? "" : carrier.getId();
                 NavalDrone drone = new NavalDrone(
                         carrierIdDominio,
-                        dn.getCombustible(),
-                        dn.getMunicion(),
+                        8000f,
+                        2,
                         ownerPlayerId,
                         1,
                         new Position(dn.getCoordenadaX(), dn.getCoordenadaY(), dn.getCoordenadaZ() == null ? 0f : dn.getCoordenadaZ())
@@ -268,14 +274,26 @@ public class PersistenciaPartidaService {
                 drone.setCombustible(dn.getCombustible());
                 drone.setAmmo(dn.getMunicion());
                 drone.setDestroyed(dn.isDestruida());
+                
+                // Determinar el estado correcto del dron segun su combustible
+                if (!dn.isDestruida()) {
+                    if (dn.getCombustible() <= 0) {
+                        drone.setState(DroneState.INHABILITADO);
+                    } else {
+                        drone.setState(DroneState.DEPLOYED);
+                    }
+                } else {
+                    drone.setState(DroneState.DESTROYED);
+                }
+                
                 gameState.addUnit(drone);
             } else if (u instanceof DronAereo da) {
                 Unit carrier = da.getPortadronAereo() == null ? null : carriersPorId.get(da.getPortadronAereo().getId());
                 String carrierIdDominio = carrier == null ? "" : carrier.getId();
                 AerialDrone drone = new AerialDrone(
                         carrierIdDominio,
-                        da.getCombustible(),
-                        da.getMunicion(),
+                        3500f,
+                        1,
                         ownerPlayerId,
                         1,
                         new Position(da.getCoordenadaX(), da.getCoordenadaY(), da.getCoordenadaZ() == null ? 0f : da.getCoordenadaZ())
@@ -283,6 +301,18 @@ public class PersistenciaPartidaService {
                 drone.setCombustible(da.getCombustible());
                 drone.setAmmo(da.getMunicion());
                 drone.setDestroyed(da.isDestruida());
+                
+                // Determinar el estado correcto del dron segun su combustible
+                if (!da.isDestruida()) {
+                    if (da.getCombustible() <= 0) {
+                        drone.setState(DroneState.INHABILITADO);
+                    } else {
+                        drone.setState(DroneState.DEPLOYED);
+                    }
+                } else {
+                    drone.setState(DroneState.DESTROYED);
+                }
+                
                 gameState.addUnit(drone);
             }
         }
