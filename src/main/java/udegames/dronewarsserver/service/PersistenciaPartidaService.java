@@ -70,7 +70,7 @@ public class PersistenciaPartidaService {
         partida.setTerminada(false);
         partida.setCodigoUnico(codigoUnico);
 
-        // Mapeo de playerId (engine) a Jugador (JPA)
+        // Mapeo de playerId a Jugador
         Map<String, Jugador> jugadorPorPlayerId = new HashMap<>();
 
         for (Player player : players) {
@@ -90,7 +90,7 @@ public class PersistenciaPartidaService {
             jugadorPorPlayerId.put(player.getId(), jugador);
         }
 
-        // Mapeo drones con su portadrones (por id UUID)
+        // Mapeo drones con su portadrones
         Map<String, PortadronNaval> portadorNavalPorIdDominio = new HashMap<>();
         Map<String, PortadronAereo> portadorAereoPorIdDominio = new HashMap<>();
         List<DronNaval> dronesNavalesPendientes = new ArrayList<>();
@@ -354,7 +354,7 @@ public class PersistenciaPartidaService {
     }
 
     private String generarCodigoUnico() {
-        // Código alfanumérico (10 chars), sin O/0/1/I
+        // Código alfanumérico
         final String alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; 
         StringBuilder sb = new StringBuilder(10);
         for (int i = 0; i < 10; i++) {
